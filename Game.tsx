@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BOARD, GROUPS, JAIL_FINE, OWNABLE, ownable } from '../game/board';
-import { vnd, vndShort } from '../game/format';
-import { MAX_TRADES_PER_TURN, actorOf, alive, current, minBid } from '../game/engine';
-import type { Action, GameState } from '../game/types';
-import type { Conn } from '../net/conn';
-import { Board } from './Board';
+import { BOARD, GROUPS, JAIL_FINE, OWNABLE, ownable } from './board';
+import { vnd, vndShort } from './format';
+import { MAX_TRADES_PER_TURN, actorOf, alive, current, minBid } from './engine';
+import type { Action, GameState } from './types';
+import type { Conn } from './conn';
+import { Board } from './BoardView';
 import { useBotDriver, useDisplayPositions } from './hooks';
 import { TokenDisc } from './icons';
 import { Dice, Log, Players, Who, propColor } from './parts';

@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { MAX_PLAYERS, MIN_PLAYERS, TOKENS } from '../game/tokens';
-import type { GameState, TokenId } from '../game/types';
-import type { Conn } from '../net/conn';
+import { MAX_PLAYERS, MIN_PLAYERS, TOKENS } from './tokens';
+import type { GameState, TokenId } from './types';
+import type { Conn } from './conn';
 import { TokenDisc, TokenIcon } from './icons';
 
 export function TokenPicker({ value, onChange, taken = [] }: { value: TokenId; onChange: (t: TokenId) => void; taken?: TokenId[] }) {

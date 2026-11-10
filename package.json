@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
     "build:preview": "vite build --mode preview",
     "preview": "vite preview",
-    "simulate": "tsx scripts/simulate.ts"
+    "simulate": "tsx simulate.ts"
   },
   "dependencies": {
     "@fontsource/be-vietnam-pro": "^5.3.0",

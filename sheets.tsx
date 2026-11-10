@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AIRPORTS, BOARD, GROUPS, GROUP_SQS, OWNABLE, isOwnable, mortgageValue, ownable, unmortgageCost } from '../game/board';
-import { DECKS } from '../game/cards';
-import { vnd, vndShort } from '../game/format';
-import { alive, canBuild, canMortgage, canSell, canUnmortgage, groupHasHouses, manageMode, netWorth } from '../game/engine';
-import type { Action, GameState } from '../game/types';
+import { AIRPORTS, BOARD, GROUPS, GROUP_SQS, OWNABLE, isOwnable, mortgageValue, ownable, unmortgageCost } from './board';
+import { DECKS } from './cards';
+import { vnd, vndShort } from './format';
+import { alive, canBuild, canMortgage, canSell, canUnmortgage, groupHasHouses, manageMode, netWorth } from './engine';
+import type { Action, GameState } from './types';
 import { TokenDisc } from './icons';
 import { Sheet, Who, propColor } from './parts';
 

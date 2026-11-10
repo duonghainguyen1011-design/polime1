@@ -1,6 +1,6 @@
 import { createClient, type RealtimeChannel, type SupabaseClient } from '@supabase/supabase-js';
-import { GameError, apply, newGame } from '../game/engine';
-import type { Action, GameState, TokenId } from '../game/types';
+import { GameError, apply, newGame } from './engine';
+import type { Action, GameState, TokenId } from './types';
 
 const URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;

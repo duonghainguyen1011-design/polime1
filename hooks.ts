@@ -1,8 +1,8 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
-import { botAction } from '../game/bot';
-import { actorOf } from '../game/engine';
-import type { GameState } from '../game/types';
-import type { Conn } from '../net/conn';
+import { botAction } from './bot';
+import { actorOf } from './engine';
+import type { GameState } from './types';
+import type { Conn } from './conn';
 
 export function useConn(conn: Conn) {
   const [, bump] = useReducer((x: number) => x + 1, 0);

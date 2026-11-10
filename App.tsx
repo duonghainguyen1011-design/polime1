@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { TOKENS } from './game/tokens';
-import type { TokenId } from './game/types';
-import { clearPractice, createPractice, createRoom, openRoom, resumePractice, type Conn } from './net/conn';
-import { GameView } from './ui/Game';
-import { Home } from './ui/Home';
-import { useConn } from './ui/hooks';
-import { Lobby } from './ui/Lobby';
+import { TOKENS } from './tokens';
+import type { TokenId } from './types';
+import { clearPractice, createPractice, createRoom, openRoom, resumePractice, type Conn } from './conn';
+import { GameView } from './Game';
+import { Home } from './Home';
+import { useConn } from './hooks';
+import { Lobby } from './Lobby';
 
 const store = {
   get(k: string) {

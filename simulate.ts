@@ -1,8 +1,8 @@
 // Plays many bot-only games through the engine to catch rule bugs and stalls.
-import { HOTEL_SUPPLY, HOUSE_SUPPLY, OWNABLE } from '../src/game/board';
-import { botAction } from '../src/game/bot';
-import { actorOf, apply, buildingCounts, newGame } from '../src/game/engine';
-import type { GameState, TokenId } from '../src/game/types';
+import { HOTEL_SUPPLY, HOUSE_SUPPLY, OWNABLE } from './board';
+import { botAction } from './bot';
+import { actorOf, apply, buildingCounts, newGame } from './engine';
+import type { GameState, TokenId } from './types';
 
 const tokens: TokenId[] = ['non-la', 'xich-lo', 'xe-may', 'pho', 'hoa-sen', 'trau'];
 

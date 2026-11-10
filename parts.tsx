@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { BOARD, GROUPS, OWNABLE } from '../game/board';
-import { vnd } from '../game/format';
-import type { GameState, Player } from '../game/types';
+import { BOARD, GROUPS, OWNABLE } from './board';
+import { vnd } from './format';
+import type { GameState, Player } from './types';
 import { TokenDisc } from './icons';
 
 // ---------- Dice ----------

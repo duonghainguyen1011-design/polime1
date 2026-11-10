@@ -9,7 +9,7 @@ Built with React + Vite, Supabase (database + realtime) and Netlify.
 ### 1. Create the Supabase project
 
 1. Create a new project at supabase.com.
-2. Open **SQL Editor**, paste everything from `supabase/schema.sql`, and click **Run**. This creates the `rooms` table, its access policies, and turns on realtime for it.
+2. Open **SQL Editor**, paste everything from `schema.sql`, and click **Run**. This creates the `rooms` table, its access policies, and turns on realtime for it.
 3. Open **Project Settings > API Keys** (or **Data API**) and copy:
    - the **Project URL**
    - the **publishable key** (called the **anon** key on older projects)
@@ -52,15 +52,18 @@ Without the two values the app still runs, with online play switched off and pra
 
 ## Project map
 
+All files sit at the top level of the repo.
+
 ```
-src/game/board.ts     board squares, prices, rents, city groups
-src/game/cards.ts     Cơ hội and Khí vận cards
-src/game/engine.ts    all rules: apply(state, playerId, action) -> new state
-src/game/bot.ts       bot strategy (buying, bidding, building, trading)
-src/net/conn.ts       Supabase room connection and local practice mode
-src/ui/*              board, tokens, sheets, lobby, home
-src/styles.css        lacquer and gold design, light and dark themes
-scripts/simulate.ts   plays hundreds of bot games to check the rules: npm run simulate
+board.ts        board squares, prices, rents, city groups
+cards.ts        Cơ hội and Khí vận cards
+engine.ts       all rules: apply(state, playerId, action) -> new state
+bot.ts          bot strategy (buying, bidding, building, trading)
+conn.ts         Supabase room connection and local practice mode
+App.tsx, BoardView.tsx, Game.tsx, Home.tsx, Lobby.tsx, sheets.tsx, parts.tsx, icons.tsx, hooks.ts   interface
+styles.css      lacquer and gold design, light and dark themes
+schema.sql      run once in Supabase
+simulate.ts     plays hundreds of bot games to check the rules: npm run simulate
 ```
 
 To rename a city, change a price or rewrite a card, edit `board.ts` or `cards.ts`; everything else follows.

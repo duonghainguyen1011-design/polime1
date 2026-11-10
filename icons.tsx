@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import type { Player, TokenId } from '../game/types';
+import type { Player, TokenId } from './types';
 
 const cut = { fill: 'var(--tk-cut, #000)', fillOpacity: 0.45 } as const;
 const cutStroke = { stroke: 'var(--tk-cut, #000)', strokeOpacity: 0.4, fill: 'none' } as const;

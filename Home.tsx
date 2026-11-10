@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { TOKENS } from '../game/tokens';
-import type { TokenId } from '../game/types';
-import { onlineEnabled } from '../net/conn';
+import { TOKENS } from './tokens';
+import type { TokenId } from './types';
+import { onlineEnabled } from './conn';
 import { TokenIcon } from './icons';
 import { TokenPicker } from './Lobby';
 
