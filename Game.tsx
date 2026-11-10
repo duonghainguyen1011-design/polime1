@@ -1,10 +1,22 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BOARD, GROUPS, JAIL_FINE, OWNABLE, ownable } from './board';
 import { vnd, vndShort } from './format';
 import { MAX_TRADES_PER_TURN, actorOf, alive, current, minBid } from './engine';
 import type { Action, GameState } from './types';
 import type { Conn } from './conn';
 import { Board } from './BoardView';
+
+// The 3D board (three.js) loads separately so the home screen and lobby open fast.
+const Board3D = lazy(() => import('./Board3D').then((m) => ({ default: m.Board3D })));
+
+function webglAvailable() {
+  try {
+    const c = document.createElement('canvas');
+    return !!(c.getContext('webgl2') || c.getContext('webgl'));
+  } catch {
+    return false;
+  }
+}
 import { useBotDriver, useDisplayPositions } from './hooks';
 import { TokenDisc } from './icons';
 import { Dice, Log, Players, Who, propColor } from './parts';
@@ -18,6 +30,7 @@ export function GameView({ conn, state, online, notify, onLeave }: { conn: Conn;
   useBotDriver(conn, state, online);
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [cardOpen, setCardOpen] = useState(false);
+  const [use3d, setUse3d] = useState(webglAvailable);
   const lastCard = useRef<number | null>(state.card?.n ?? null);
 
   const run = useCallback(
@@ -57,15 +70,26 @@ export function GameView({ conn, state, online, notify, onLeave }: { conn: Conn;
   return (
     <div className={`game${dockFor(state, me) ? ' has-dock' : ''}`}>
       <section className="board-col">
-        <Board
-          state={state}
-          shown={shown}
-          moving={moving}
-          me={me}
-          highlight={highlight}
-          onTile={(i) => setOverlay({ k: 'prop', i })}
-          center={<Center state={state} me={me} online={online} local={conn.local} dispatch={dispatch} openTrade={() => setOverlay({ k: 'trade' })} />}
-        />
+        {use3d ? (
+          <div className="stage">
+            <Suspense fallback={<div className="stage-board stage-loading">Đang dựng bàn cờ</div>}>
+              <Board3D state={state} shown={shown} highlight={highlight} onTile={(i) => setOverlay({ k: 'prop', i })} onFail={() => setUse3d(false)} />
+            </Suspense>
+            <div className="hud">
+              <Center variant="hud" state={state} me={me} online={online} local={conn.local} dispatch={dispatch} openTrade={() => setOverlay({ k: 'trade' })} />
+            </div>
+          </div>
+        ) : (
+          <Board
+            state={state}
+            shown={shown}
+            moving={moving}
+            me={me}
+            highlight={highlight}
+            onTile={(i) => setOverlay({ k: 'prop', i })}
+            center={<Center variant="board" state={state} me={me} online={online} local={conn.local} dispatch={dispatch} openTrade={() => setOverlay({ k: 'trade' })} />}
+          />
+        )}
       </section>
 
       <aside className="side">
@@ -100,7 +124,7 @@ export function GameView({ conn, state, online, notify, onLeave }: { conn: Conn;
 
 // ---------- Center of the board ----------
 
-function Center({ state, me, online, local, dispatch, openTrade }: { state: GameState; me: string; online: Set<string>; local: boolean; dispatch: (a: Action) => void; openTrade: () => void }) {
+function Center({ variant, state, me, online, local, dispatch, openTrade }: { variant: 'board' | 'hud'; state: GameState; me: string; online: Set<string>; local: boolean; dispatch: (a: Action) => void; openTrade: () => void }) {
   const cur = current(state);
   const meP = state.players.find((p) => p.id === me);
   const actor = actorOf(state);
@@ -119,12 +143,20 @@ function Center({ state, me, online, local, dispatch, openTrade }: { state: Game
   else status = <>Lượt của <Who p={cur} /></>;
 
   return (
-    <div className="center-inner">
-      <div className="wordmark" aria-label="Polime">
-        Polime
-      </div>
+    <div className={variant === 'hud' ? 'hud-inner' : 'center-inner'}>
+      {variant === 'board' && (
+        <div className="wordmark" aria-label="Polime">
+          Polime
+        </div>
+      )}
       <div className="status">{status}</div>
-      <Dice dice={state.dice} rollN={state.rollN} />
+      {variant === 'board' ? (
+        <Dice dice={state.dice} rollN={state.rollN} />
+      ) : (
+        <span className="sr-only" aria-live="polite">
+          Xúc xắc {state.dice[0]} và {state.dice[1]}
+        </span>
+      )}
       <div className="center-actions">
         {mine && state.step === 'roll' && !cur.inJail && (
           <button type="button" className="btn btn-primary big" onClick={() => dispatch({ t: 'roll' })}>

@@ -57,14 +57,14 @@ export const HOUSE_SUPPLY = 32;
 export const HOTEL_SUPPLY = 12;
 
 export const GROUPS: Record<Group, { label: string; color: string; ink: string }> = {
-  brown: { label: 'Đông Bắc', color: '#8A5A3B', ink: '#FFF6E8' },
-  lightblue: { label: 'Tây Bắc', color: '#8FB8C4', ink: '#1E2A2E' },
-  pink: { label: 'Tây Nguyên', color: '#C9718F', ink: '#FFF4F7' },
-  orange: { label: 'Miền Trung', color: '#DE8A34', ink: '#2A1606' },
-  red: { label: 'Duyên hải', color: '#B5302A', ink: '#FFF1EC' },
-  yellow: { label: 'Danh thắng', color: '#D9B23A', ink: '#2A2104' },
-  green: { label: 'Đô thị lớn', color: '#3D7A5A', ink: '#EFFAF3' },
-  darkblue: { label: 'Hai trung tâm', color: '#2B4A7E', ink: '#EEF3FF' },
+  brown: { label: 'Đông Bắc', color: '#C98F62', ink: '#33200F' },
+  lightblue: { label: 'Tây Bắc', color: '#7FD3F2', ink: '#10303B' },
+  pink: { label: 'Tây Nguyên', color: '#FF9CC0', ink: '#431527' },
+  orange: { label: 'Miền Trung', color: '#FFAB4A', ink: '#402105' },
+  red: { label: 'Duyên hải', color: '#F2675C', ink: '#3D0F0B' },
+  yellow: { label: 'Danh thắng', color: '#FFD23F', ink: '#3D2F00' },
+  green: { label: 'Đô thị lớn', color: '#52C173', ink: '#0D3319' },
+  darkblue: { label: 'Hai trung tâm', color: '#4F7FE6', ink: '#FFFFFF' },
 };
 
 const st = (

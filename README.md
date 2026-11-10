@@ -60,8 +60,15 @@ cards.ts        Cơ hội and Khí vận cards
 engine.ts       all rules: apply(state, playerId, action) -> new state
 bot.ts          bot strategy (buying, bidding, building, trading)
 conn.ts         Supabase room connection and local practice mode
+scene3d.ts      the 3D board: diamond camera, chunky squares, tokens, dice, zoom, tapping
+buildings.ts    cartoon buildings: tube houses, Hội An shophouses, stilt houses, hotels, five landmarks
+tokens3d.ts     the eight painted toy tokens
+decor.ts        scenery in the middle: palms, bamboo, pond, basket boat, paddies
+texture.ts      paints the square faces, the centre and the banner logo
+layout.ts       where every square, plot and label sits on the board
+Board3D.tsx     React wrapper for the 3D board (falls back to the flat board without WebGL)
 App.tsx, BoardView.tsx, Game.tsx, Home.tsx, Lobby.tsx, sheets.tsx, parts.tsx, icons.tsx, hooks.ts   interface
-styles.css      lacquer and gold design, light and dark themes
+styles.css      bright cartoon look for every screen
 schema.sql      run once in Supabase
 simulate.ts     plays hundreds of bot games to check the rules: npm run simulate
 ```

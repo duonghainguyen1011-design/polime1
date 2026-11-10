@@ -11,8 +11,8 @@ export const TOKENS: { id: TokenId; label: string }[] = [
   { id: 'ca-phe', label: 'Cà phê phin' },
 ];
 
-// Player discs: lacquer pigments, distinct from each other and readable under gold icons.
-export const PLAYER_COLORS = ['#B23A2E', '#23735A', '#2C4C8C', '#B7791F', '#6E3B78', '#1C7C86'];
+// Player colours: bright toy paints, easy to tell apart on the board.
+export const PLAYER_COLORS = ['#E5484D', '#2FA866', '#3B82F6', '#F59E0B', '#A855F7', '#14B8C4'];
 
 export const MAX_PLAYERS = 6;
 export const MIN_PLAYERS = 2;

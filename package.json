@@ -12,11 +12,13 @@
     "simulate": "tsx simulate.ts"
   },
   "dependencies": {
+    "@fontsource/baloo-2": "^5.3.0",
     "@fontsource/be-vietnam-pro": "^5.3.0",
-    "@fontsource/prata": "^5.3.0",
     "@supabase/supabase-js": "^2.45.0",
+    "@types/three": "^0.169.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "three": "^0.169.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",
