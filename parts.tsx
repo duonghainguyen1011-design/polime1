@@ -97,11 +97,44 @@ export function Players({ state, me, online, local }: { state: GameState; me: st
                 </div>
               )}
             </div>
-            <div className="pl-cash">{vnd(p.cash)}</div>
+            <div className="pl-cash">
+              <CashDelta cash={p.cash} />
+              {vnd(p.cash)}
+            </div>
           </li>
         );
       })}
     </ul>
+  );
+}
+
+/** Briefly shows how much a player's money just changed. */
+export function CashDelta({ cash, big }: { cash: number; big?: boolean }) {
+  const prev = useRef(cash);
+  const pending = useRef(0);
+  const [d, setD] = useState<{ v: number; k: number } | null>(null);
+  useEffect(() => {
+    if (cash === prev.current) return;
+    const v = cash - prev.current;
+    prev.current = cash;
+    // Shown after the dice and the walk have played out; several quick changes add up into one number.
+    pending.current += v;
+    const show = window.setTimeout(() => {
+      setD({ v: pending.current, k: Date.now() });
+      pending.current = 0;
+    }, 1500);
+    const hide = window.setTimeout(() => setD(null), 1500 + (big ? 2600 : 2400));
+    return () => {
+      window.clearTimeout(show);
+      window.clearTimeout(hide);
+    };
+  }, [cash, big]);
+  if (!d || d.v === 0) return null;
+  return (
+    <span key={d.k} className={`delta${big ? ' delta-big' : ''} ${d.v > 0 ? 'up' : 'down'}`} role={big ? 'status' : undefined}>
+      {d.v > 0 ? '+' : '−'}
+      {vnd(Math.abs(d.v))}
+    </span>
   );
 }
 

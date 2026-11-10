@@ -61,7 +61,7 @@ engine.ts       all rules: apply(state, playerId, action) -> new state
 bot.ts          bot strategy (buying, bidding, building, trading)
 conn.ts         Supabase room connection and local practice mode
 scene3d.ts      the 3D board: diamond camera, chunky squares, tokens, dice, zoom, tapping
-buildings.ts    cartoon buildings: tube houses, Hội An shophouses, stilt houses, hotels, five landmarks
+buildings.ts    cartoon buildings: tube houses, Hội An shophouses, stilt houses, and a landmark for every city
 tokens3d.ts     the eight painted toy tokens
 decor.ts        scenery in the middle: palms, bamboo, pond, basket boat, paddies
 texture.ts      paints the square faces, the centre and the banner logo

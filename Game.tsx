@@ -19,7 +19,7 @@ function webglAvailable() {
 }
 import { useBotDriver, useDisplayPositions } from './hooks';
 import { TokenDisc } from './icons';
-import { Dice, Log, Players, Who, propColor } from './parts';
+import { CashDelta, Dice, Log, Players, Who, propColor } from './parts';
 import { CardReveal, GameOver, ManageSheet, PropertySheet, TradeSheet, TradeSummary } from './sheets';
 
 type Overlay = { k: 'prop'; i: number } | { k: 'manage' } | { k: 'trade' } | null;
@@ -75,6 +75,11 @@ export function GameView({ conn, state, online, notify, onLeave }: { conn: Conn;
             <Suspense fallback={<div className="stage-board stage-loading">Đang dựng bàn cờ</div>}>
               <Board3D state={state} shown={shown} highlight={highlight} onTile={(i) => setOverlay({ k: 'prop', i })} onFail={() => setUse3d(false)} />
             </Suspense>
+            {meP && !meP.bankrupt && (
+              <div className="money-pop">
+                <CashDelta cash={meP.cash} big />
+              </div>
+            )}
             <div className="hud">
               <Center variant="hud" state={state} me={me} online={online} local={conn.local} dispatch={dispatch} openTrade={() => setOverlay({ k: 'trade' })} />
             </div>

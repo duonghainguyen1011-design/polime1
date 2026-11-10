@@ -7,6 +7,8 @@ import { LANDMARKS, buildingFor, cageProp, flag, lixiProp, mysteryProp, planePro
 import { buildDecor } from './decor';
 import { lotCenter, standSpot, tileCenter, tileRect, TILE_TOP, UNITS } from './layout';
 import { paintBoard, paintCenter } from './texture';
+import { P, rentFor } from './engine';
+import { vndShort } from './format';
 import { DIRECTIONAL, sculpt } from './tokens3d';
 import type { GameState, TokenId } from './types';
 
@@ -26,6 +28,7 @@ const easeOutBack = (t: number) => {
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
 const CAM_DIST = 60;
+const MONEY_DELAY = 1500;
 const ELEVATION = THREE.MathUtils.degToRad(37);
 const TILE_BODY = '#FFFDF7';
 const DICE_AT = new THREE.Vector3(1.85, 0, 1.85);
@@ -124,6 +127,9 @@ export class BoardScene {
   private down: { x: number; y: number; moved: number } | null = null;
   private raycaster = new THREE.Raycaster();
   private decorTick: (now: number) => void = () => {};
+  private rentBadges = new Map<number, { key: string; sprite: THREE.Sprite; hot: boolean }>();
+  private cash = new Map<string, number>();
+  private popCount = 0;
 
   constructor(private canvas: HTMLCanvasElement, private onTile: (i: number) => void) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
@@ -346,6 +352,8 @@ export class BoardScene {
     const turnId = state.phase === 'playing' ? state.players[state.turn]?.id ?? null : null;
     if (turnId !== this.turnId) this.pan.set(0, 0, 0);
     this.turnId = turnId;
+    this.syncRents(state);
+    this.syncCash(state);
     this.syncDice(state);
   }
 
@@ -446,6 +454,8 @@ export class BoardScene {
           const scale = level >= 5 && LANDMARKS[i] && i !== 39 ? 1.22 : 1.12;
           g.scale.setScalar(scale);
           g.position.set(w(lot.x), TILE_TOP, w(lot.y));
+          g.updateMatrixWorld(true);
+          g.userData.top = new THREE.Box3().setFromObject(g).max.y;
           this.addPickable(g, i);
           this.buildings.set(i, { key, group: g });
           if (level > prevLevel && !reduceMotion()) {
@@ -489,6 +499,74 @@ export class BoardScene {
     if (changed) {
       this.cloths = [];
       for (const p of [...this.buildings.values(), ...this.flags.values()]) p.group.traverse((o) => o.name === 'cloth' && this.cloths.push(o));
+    }
+  }
+
+  // ---------- rent badges and money pop-ups ----------
+
+  /** A floating badge over every owned square showing what a visitor pays right now, coloured by how much it hurts. */
+  private syncRents(state: GameState) {
+    for (const i of OWNABLE) {
+      const sq = BOARD[i];
+      const ps = state.props[i];
+      let key = '';
+      let label = '';
+      let tier = 0;
+      if (ps?.owner && !ps.mortgaged) {
+        if (P(state, ps.owner).inJail) {
+          label = '0₫';
+          tier = -1;
+        } else if (sq.kind === 'utility') {
+          label = `×${rentFor(state, i, 1)}`;
+        } else {
+          const rent = rentFor(state, i, 7);
+          label = vndShort(rent);
+          tier = rent >= 1000 ? 3 : rent >= 500 ? 2 : rent >= 300 ? 1 : 0;
+        }
+        key = `${label}:${tier}:${this.buildings.get(i)?.key ?? ''}`;
+      }
+      const cur = this.rentBadges.get(i);
+      if ((cur?.key ?? '') === key) continue;
+      if (cur) this.scene.remove(cur.sprite);
+      this.rentBadges.delete(i);
+      if (!key) continue;
+      const [bg, fg] = tier === 3 ? ['#D7263D', '#ffffff'] : tier === 2 ? ['#FF8A3D', '#3A1A00'] : tier === 1 ? ['#FFD23F', '#3D2F00'] : tier === -1 ? ['#8E99A8', '#ffffff'] : ['#2FA866', '#ffffff'];
+      const sprite = textSprite(label, bg, fg, tier === 3);
+      const lot = lotCenter(i);
+      const top = (this.buildings.get(i)?.group.userData.top as number | undefined) ?? TILE_TOP + (sq.kind === 'street' ? 0.6 : 0.8);
+      sprite.position.set(w(lot.x), top + 0.3, w(lot.y));
+      sprite.userData.base = sprite.scale.clone();
+      sprite.userData.sq = i;
+      this.scene.add(sprite);
+      this.rentBadges.set(i, { key, sprite, hot: tier === 3 });
+    }
+  }
+
+  /** "+2tr" or "−1,3tr" rising from a player's token whenever their money changes. */
+  private syncCash(state: GameState) {
+    for (const p of state.players) {
+      const prev = this.cash.get(p.id);
+      this.cash.set(p.id, p.cash);
+      if (prev === undefined || prev === p.cash || state.phase !== 'playing') continue;
+      const tok = this.tokens.get(p.id);
+      if (!tok) continue;
+      const d = p.cash - prev;
+      const sprite = textSprite(`${d > 0 ? '+' : '−'}${vndShort(Math.abs(d))}`, d > 0 ? '#1F9D57' : '#D7263D', '#ffffff', false, 1.35);
+      const base = sprite.scale.clone();
+      const start = tok.to.clone();
+      const stack = this.popCount++ % 3;
+      // Wait for the dice and the walk to finish, so the number appears when the player sees why.
+      window.setTimeout(() => {
+        if (this.disposed) return;
+        start.copy(tok.to);
+        this.scene.add(sprite);
+        this.animate(reduceMotion() ? 1400 : 2100, (t) => {
+        sprite.position.set(start.x, start.y + 1.15 + stack * 0.42 + easeOut(t) * 0.9, start.z);
+        sprite.scale.copy(base).multiplyScalar(t < 0.12 ? 0.6 + (t / 0.12) * 0.4 : 1);
+        sprite.material.opacity = t > 0.72 ? 1 - (t - 0.72) / 0.28 : 1;
+          if (t >= 1) this.scene.remove(sprite);
+        });
+      }, MONEY_DELAY);
     }
   }
 
@@ -621,6 +699,9 @@ export class BoardScene {
       b.o.position.y = b.y + Math.sin(now / 520 + b.phase) * 0.035;
     }
     if (!reduceMotion()) this.decorTick(now);
+    for (const b of this.rentBadges.values()) {
+      if (b.hot) b.sprite.scale.copy(b.sprite.userData.base).multiplyScalar(1 + 0.09 * pulse);
+    }
     for (const s of this.spinners) s.rotation.y = -Math.PI / 4 + Math.sin(now / 900) * 0.5;
     this.renderer.render(this.scene, this.camera);
   };
@@ -675,6 +756,49 @@ export class BoardScene {
     });
     this.renderer.dispose();
   }
+}
+
+const spriteTex = new Map<string, THREE.CanvasTexture>();
+/** A rounded label that always faces the camera and stays readable over buildings. */
+function textSprite(label: string, bg: string, fg: string, warn: boolean, size = 1) {
+  const key = `${label}|${bg}|${fg}|${warn}`;
+  let tex = spriteTex.get(key);
+  let aspect = 1;
+  if (!tex) {
+    const c = document.createElement('canvas');
+    const g = c.getContext('2d')!;
+    const font = '800 64px "Baloo 2", "Be Vietnam Pro", system-ui, sans-serif';
+    g.font = font;
+    const tw = Math.ceil(g.measureText(label).width);
+    c.width = tw + 64 + (warn ? 56 : 0);
+    c.height = 104;
+    g.font = font;
+    g.lineWidth = 8;
+    g.strokeStyle = '#ffffff';
+    g.fillStyle = bg;
+    g.beginPath();
+    g.roundRect(4, 4, c.width - 8, c.height - 8, 46);
+    g.fill();
+    g.stroke();
+    g.fillStyle = fg;
+    g.textBaseline = 'alphabetic';
+    let x = 32;
+    if (warn) {
+      g.fillText('!', x, 76);
+      x += 44;
+    }
+    g.fillText(label, x, 76);
+    tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    spriteTex.set(key, tex);
+  }
+  const img = tex.image as HTMLCanvasElement;
+  aspect = img.width / img.height;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, toneMapped: false }));
+  sprite.renderOrder = 10;
+  const h = 0.4 * size;
+  sprite.scale.set(h * aspect, h, 1);
+  return sprite;
 }
 
 /** Direction of travel along each side, as a yaw for models whose front points along -x. */

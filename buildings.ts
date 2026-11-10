@@ -433,12 +433,465 @@ function cauCanTho(owner: string) {
   return g;
 }
 
+// ---------- one landmark for every other city ----------
+
+const STONE = '#CDBFA6';
+const SEA = '#55C6EC';
+const SAND = '#F3DFA6';
+
+function tree(g: THREE.Object3D, x: number, z: number, color = LEAF, s = 1) {
+  put(g, cyl(0.02 * s, 0.026 * s, 0.16 * s, 6), toy('#8A5A36'), x, 0.04 + 0.08 * s, z);
+  put(g, ball(0.1 * s), toy(color), x, 0.04 + 0.22 * s, z);
+}
+function pine(g: THREE.Object3D, x: number, z: number, s = 1) {
+  put(g, cyl(0.018 * s, 0.022 * s, 0.1 * s, 6), toy('#8A5A36'), x, 0.04 + 0.05 * s, z);
+  put(g, new THREE.ConeGeometry(0.09 * s, 0.2 * s, 8), toy('#2F8F55'), x, 0.04 + 0.18 * s, z);
+  put(g, new THREE.ConeGeometry(0.065 * s, 0.16 * s, 8), toy('#3FA765'), x, 0.04 + 0.29 * s, z);
+}
+function miniPalm(g: THREE.Object3D, x: number, z: number, h: number) {
+  const trunk = put(g, cyl(0.02, 0.028, h, 6), toy('#B98B5E'), x, 0.04 + h / 2, z);
+  trunk.rotation.z = 0.08;
+  for (let a = 0; a < 6; a++) {
+    const pivot = new THREE.Group();
+    pivot.position.set(x - 0.02, 0.04 + h, z);
+    pivot.rotation.y = (a / 6) * Math.PI * 2;
+    const leaf = put(pivot, ball(1), toy(a % 2 ? '#3FB25F' : '#58C472'), 0.1, -0.02, 0);
+    leaf.scale.set(0.12, 0.018, 0.045);
+    leaf.rotation.z = -0.5;
+    g.add(pivot);
+  }
+}
+function blob(g: THREE.Object3D, color: string, x: number, y: number, z: number, sx: number, sy: number, sz: number, flat = false) {
+  const o = put(g, new THREE.SphereGeometry(1, flat ? 7 : 16, flat ? 5 : 12), toy(color, { flat }), x, y, z);
+  o.scale.set(sx, sy, sz);
+  return o;
+}
+function starShape(R: number) {
+  const s = new THREE.Shape();
+  for (let k = 0; k < 10; k++) {
+    const a = Math.PI / 2 + (k * Math.PI) / 5;
+    const r = k % 2 ? R * 0.42 : R;
+    if (k === 0) s.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+    else s.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+  }
+  s.closePath();
+  return new THREE.ShapeGeometry(s);
+}
+/** A national flag on a pole: red with a gold star. */
+function redFlag(g: THREE.Object3D, x: number, y: number, z: number, h: number, w = 0.26) {
+  put(g, cyl(0.012, 0.012, h, 6), toy(WHITE), x, y + h / 2, z);
+  const f = put(g, new THREE.PlaneGeometry(w, w * 0.66), toy('#E5484D', { double: true }), x + w / 2, y + h - w * 0.33, z);
+  f.rotation.y = -0.3;
+  const st = put(g, starShape(w * 0.17), toy('#FFD23F', { double: true }), x + w / 2, y + h - w * 0.33, z + 0.012);
+  st.rotation.y = -0.3;
+}
+function sampan(g: THREE.Object3D, x: number, y: number, z: number, ry: number) {
+  const b = new THREE.Group();
+  const hull = put(b, soft(0.24, 0.045, 0.08, 0.02), toy('#8A5A36'), 0, 0, 0);
+  hull.scale.z = 1;
+  put(b, cyl(0.022, 0.022, 0.06, 8), toy('#5B6CC9'), 0.05, 0.05, 0);
+  put(b, new THREE.ConeGeometry(0.05, 0.035, 12), toy('#F6D98C'), 0.05, 0.1, 0);
+  b.position.set(x, y, z);
+  b.rotation.y = ry;
+  g.add(b);
+}
+
+/** Cao Bằng: Bản Giốc waterfall tumbling over three rock steps. */
+function banGioc(owner: string) {
+  const g = pad('#7FC46A', 0.46);
+  const rock = toy('#8E8577', { flat: true });
+  const water = toy('#8FDDF7');
+  const steps: [number, number, number][] = [[-0.16, 0.56, 0.74], [0.02, 0.36, 0.66], [0.18, 0.18, 0.56]];
+  for (const [z, h, w] of steps) {
+    put(g, soft(w, h, 0.2, 0.04), rock, 0, 0.04 + h / 2, z);
+    for (const x of [-w * 0.26, w * 0.1, w * 0.32]) put(g, box(w * 0.2, h * 0.52, 0.03), water, x, 0.04 + h * 0.74, z + 0.1);
+    put(g, box(w * 0.86, 0.025, 0.06), water, 0, 0.04 + h, z + 0.07);
+  }
+  put(g, cyl(0.3, 0.3, 0.02, 24), toy(SEA), 0.02, 0.05, 0.3).scale.set(1, 1, 0.45);
+  for (const x of [-0.2, 0, 0.2]) blob(g, WHITE, x, 0.07, 0.3, 0.05, 0.03, 0.04);
+  blob(g, LEAF, -0.26, 0.64, -0.18, 0.12, 0.08, 0.1);
+  blob(g, '#3FA765', 0.22, 0.64, -0.18, 0.14, 0.09, 0.1);
+  pennant(g, owner, -0.36, 0.04, 0.22);
+  return g;
+}
+
+/** Hà Giang: the Lũng Cú flag tower on its hilltop, the northernmost point of the country. */
+function lungCu(owner: string) {
+  const g = pad('#7FC46A', 0.46);
+  put(g, new THREE.ConeGeometry(0.42, 0.42, 7), toy('#5FA36A', { flat: true }), 0, 0.25, 0);
+  put(g, new THREE.ConeGeometry(0.2, 0.2, 6), toy('#8E8577', { flat: true }), 0.26, 0.14, 0.14);
+  put(g, cyl(0.1, 0.13, 0.4, 8), toy('#E9DFC7'), 0, 0.6, 0);
+  put(g, cyl(0.15, 0.15, 0.035, 8), toy(STONE), 0, 0.81, 0);
+  put(g, cyl(0.07, 0.08, 0.1, 8), toy('#E9DFC7'), 0, 0.87, 0);
+  redFlag(g, 0, 0.92, 0, 0.5, 0.36);
+  pennant(g, owner, -0.34, 0.04, 0.22);
+  return g;
+}
+
+/** Điện Biên: the victory monument, bronze soldiers raising the flag on a stone plinth. */
+function tuongDai(owner: string) {
+  const g = pad('#7FC46A', 0.46);
+  let y = 0.04;
+  for (const [w, h] of [[0.72, 0.1], [0.56, 0.12], [0.4, 0.28]]) {
+    put(g, soft(w, h, w * 0.8, 0.02), toy(STONE), 0, y + h / 2, 0);
+    y += h;
+  }
+  const bronze = toy('#B9853A');
+  for (const [x, z, s] of [[0, 0, 1], [-0.11, 0.05, 0.8], [0.11, 0.05, 0.8]]) {
+    put(g, cyl(0.035 * s, 0.045 * s, 0.2 * s, 8), bronze, x, y + 0.1 * s, z);
+    put(g, ball(0.04 * s), bronze, x, y + 0.24 * s, z);
+  }
+  redFlag(g, 0.03, y + 0.2, 0, 0.36, 0.26);
+  tree(g, -0.34, -0.12, '#FFFFFF', 0.9); // hoa ban
+  tree(g, 0.34, -0.14, '#F7E9F2', 0.8);
+  pennant(g, owner, -0.34, 0.04, 0.24);
+  return g;
+}
+
+/** Mộc Châu: terraced tea hills, a plum tree in bloom and a dairy cow. */
+function doiChe(owner: string) {
+  const g = pad('#7FC46A', 0.46);
+  for (let k = 0; k < 5; k++) {
+    const r = 0.36 - k * 0.065;
+    put(g, cyl(r - 0.02, r, 0.075, 28), toy(k % 2 ? '#3F9B55' : '#63BF6C'), -0.06, 0.08 + k * 0.075, -0.06);
+  }
+  put(g, cyl(0.02, 0.026, 0.14, 6), toy('#6B4226'), -0.06, 0.5, -0.06);
+  blob(g, '#FFE3EE', -0.06, 0.62, -0.06, 0.11, 0.09, 0.11);
+  blob(g, '#FFFFFF', 0.0, 0.66, -0.02, 0.06, 0.05, 0.06);
+  // cow
+  blob(g, WHITE, 0.28, 0.13, 0.22, 0.09, 0.055, 0.055);
+  blob(g, '#33261F', 0.3, 0.15, 0.24, 0.04, 0.03, 0.035);
+  blob(g, WHITE, 0.19, 0.16, 0.24, 0.04, 0.035, 0.035);
+  blob(g, '#F0B4B4', 0.16, 0.15, 0.25, 0.02, 0.018, 0.02);
+  for (const [x, z] of [[0.23, 0.19], [0.23, 0.25], [0.33, 0.19], [0.33, 0.25]]) put(g, cyl(0.012, 0.012, 0.07, 6), toy(WHITE), x, 0.075, z);
+  pennant(g, owner, -0.36, 0.04, 0.22);
+  return g;
+}
+
+/** Sa Pa: Fansipan, the roof of Indochina, with its summit marker and a cable car. */
+function fansipan(owner: string) {
+  const g = pad('#7FC46A', 0.46);
+  const rock = toy('#7C8FA6', { flat: true });
+  put(g, new THREE.ConeGeometry(0.4, 1.0, 6), rock, -0.04, 0.54, -0.06);
+  put(g, new THREE.ConeGeometry(0.26, 0.56, 5), toy('#6A7D94', { flat: true }), 0.22, 0.32, 0.08);
+  put(g, new THREE.ConeGeometry(0.145, 0.36, 6), toy(WHITE, { flat: true }), -0.04, 0.865, -0.06);
+  put(g, new THREE.ConeGeometry(0.04, 0.09, 3), toy('#DDE6EE'), -0.04, 1.08, -0.06);
+  const a = new THREE.Vector3(-0.4, 0.2, 0.26);
+  const b = new THREE.Vector3(-0.1, 0.86, 0.02);
+  const geo = new THREE.BufferGeometry().setFromPoints([a, b]);
+  g.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: '#33261F' })));
+  put(g, cyl(0.014, 0.014, 0.2, 6), toy('#8E99A8'), a.x, 0.12, a.z);
+  const cabin = a.clone().lerp(b, 0.45);
+  put(g, soft(0.09, 0.08, 0.07, 0.02), toy('#E5484D'), cabin.x, cabin.y - 0.06, cabin.z);
+  pine(g, 0.3, 0.3, 0.8);
+  pine(g, 0.1, 0.36, 0.7);
+  pennant(g, owner, 0.38, 0.04, -0.14);
+  return g;
+}
+
+/** Pleiku: Biển Hồ, the crater lake ringed with pines. */
+function bienHo(owner: string) {
+  const g = pad('#7FC46A', 0.46);
+  const rim = put(g, new THREE.TorusGeometry(0.31, 0.09, 10, 32), toy('#5FA36A'), 0, 0.07, 0);
+  rim.rotation.x = Math.PI / 2;
+  rim.scale.z = 0.9;
+  put(g, cyl(0.3, 0.3, 0.02, 32), toy('#3E9CD4'), 0, 0.1, 0);
+  for (const [x, z, s] of [[-0.3, -0.18, 1], [-0.14, -0.33, 0.85], [0.1, -0.34, 1.05], [0.32, -0.14, 0.9], [-0.36, 0.08, 0.8]]) pine(g, x, z, s * 1.05);
+  put(g, box(0.05, 0.02, 0.22), toy(WOOD), 0.12, 0.125, 0.22);
+  for (const z of [0.14, 0.3]) put(g, cyl(0.01, 0.01, 0.08, 5), toy(WOOD_DARK), 0.12, 0.1, z);
+  const hut = gable(0.12, 0.07, 0.1, toy(TILE));
+  hut.position.set(0.12, 0.17, 0.12);
+  g.add(hut);
+  put(g, box(0.09, 0.05, 0.08), toy(WOOD), 0.12, 0.15, 0.12);
+  pennant(g, owner, 0.36, 0.04, 0.2);
+  return g;
+}
+
+/** Buôn Ma Thuột: a ceremonial elephant from Buôn Đôn. */
+function voi(owner: string) {
+  const g = pad('#7FC46A', 0.46);
+  const skin = toy('#93A0B2');
+  blob(g, '#93A0B2', 0.04, 0.4, 0, 0.3, 0.22, 0.2);
+  blob(g, '#93A0B2', -0.26, 0.46, 0, 0.16, 0.16, 0.15);
+  for (const s of [-1, 1]) {
+    const ear = put(g, cyl(0.13, 0.13, 0.025, 16), toy('#A9B5C5'), -0.2, 0.47, s * 0.15);
+    ear.rotation.set(Math.PI / 2, 0, s * 0.35);
+    put(g, new THREE.ConeGeometry(0.02, 0.12, 6), toy(WHITE), -0.36, 0.36, s * 0.07).rotation.z = Math.PI * 0.7;
+    put(g, ball(0.016), toy('#33261F'), -0.37, 0.5, s * 0.08);
+  }
+  const trunk = new THREE.CatmullRomCurve3([new THREE.Vector3(-0.38, 0.44, 0), new THREE.Vector3(-0.46, 0.3, 0), new THREE.Vector3(-0.44, 0.14, 0), new THREE.Vector3(-0.36, 0.1, 0)]);
+  put(g, new THREE.TubeGeometry(trunk, 16, 0.04, 8, false), skin);
+  for (const [x, z] of [[-0.14, 0.1], [-0.14, -0.1], [0.2, 0.1], [0.2, -0.1]]) put(g, cyl(0.055, 0.06, 0.24, 10), skin, x, 0.16, z);
+  // festival blanket and howdah
+  put(g, soft(0.26, 0.05, 0.36, 0.02), toy('#E5484D'), 0.04, 0.6, 0);
+  put(g, soft(0.2, 0.03, 0.4, 0.01), toy('#FFD23F'), 0.04, 0.59, 0);
+  put(g, soft(0.18, 0.1, 0.2, 0.02), toy(WOOD), 0.04, 0.68, 0);
+  const tail = put(g, cyl(0.01, 0.01, 0.16, 5), skin, 0.34, 0.36, 0);
+  tail.rotation.z = 0.4;
+  pennant(g, owner, 0.04, 0.72, 0);
+  return g;
+}
+
+/** Đà Lạt: the old railway station with its three steep gables. */
+function gaDaLat(owner: string) {
+  const g = pad('#7FC46A', 0.46);
+  const wall = toy('#FFD66B');
+  put(g, soft(0.8, 0.2, 0.32, 0.02), wall, 0, 0.14, -0.02);
+  const low = gable(0.36, 0.14, 0.82, toy('#C8463A'));
+  low.rotation.y = Math.PI / 2;
+  low.position.set(0, 0.24, -0.02);
+  g.add(low);
+  for (const [x, h] of [[-0.23, 0.36], [0, 0.48], [0.23, 0.36]]) {
+    put(g, box(0.19, 0.2, 0.06), wall, x, 0.14, 0.15);
+    const roof = gable(0.25, h, 0.34, toy('#C8463A'));
+    roof.position.set(x, 0.24, 0);
+    g.add(roof);
+    const face = gable(0.18, h * 0.74, 0.02, wall);
+    face.position.set(x, 0.24, 0.175);
+    g.add(face);
+    put(g, soft(0.07, 0.12, 0.02, 0.01), toy('#7BC4E8'), x, 0.16, 0.185);
+  }
+  put(g, cyl(0.045, 0.045, 0.02, 16), toy(WHITE), 0, 0.36, 0.19).rotation.x = Math.PI / 2;
+  pine(g, -0.36, 0.2, 0.8);
+  pine(g, 0.37, 0.18, 0.7);
+  pennant(g, owner, 0, 0.7, 0);
+  return g;
+}
+
+/** Quy Nhơn: Tháp Đôi, the twin Cham towers of red brick. */
+function thapDoi(owner: string) {
+  const g = pad('#7FC46A', 0.46);
+  const brick = toy('#C0603F', { flat: true });
+  for (const [x, z, s] of [[-0.16, 0.02, 1], [0.17, -0.04, 0.86]]) {
+    put(g, cyl(0.15 * s, 0.17 * s, 0.07, 4), toy('#A64E33', { flat: true }), x, 0.075, z).rotation.y = Math.PI / 4;
+    put(g, cyl(0.12 * s, 0.14 * s, 0.5 * s, 4), brick, x, 0.11 + 0.25 * s, z).rotation.y = Math.PI / 4;
+    let y = 0.11 + 0.5 * s;
+    for (let k = 0; k < 4; k++) {
+      const r = (0.125 - k * 0.026) * s;
+      put(g, cyl(r * 0.82, r, 0.1 * s, 4), k % 2 ? toy('#A64E33', { flat: true }) : brick, x, y + 0.05 * s, z).rotation.y = Math.PI / 4;
+      y += 0.1 * s;
+    }
+    put(g, soft(0.06 * s, 0.16 * s, 0.02, 0.01), toy('#4A2A1E'), x, 0.2, z + 0.1 * s);
+  }
+  miniPalm(g, 0.34, 0.2, 0.34);
+  miniPalm(g, -0.36, 0.2, 0.26);
+  pennant(g, owner, 0, 0.04, 0.32);
+  return g;
+}
+
+/** Huế: Ngọ Môn, the great gate of the Imperial City. */
+function ngoMon(owner: string) {
+  const g = pad('#7FC46A', 0.46);
+  put(g, soft(0.82, 0.26, 0.3, 0.02), toy(STONE), 0, 0.17, -0.04);
+  for (const x of [-0.37, 0.37]) put(g, soft(0.16, 0.26, 0.22, 0.02), toy(STONE), x, 0.17, 0.16);
+  for (const [x, w, h] of [[0, 0.11, 0.18], [-0.18, 0.08, 0.14], [0.18, 0.08, 0.14]]) put(g, soft(w, h, 0.02, 0.01), toy('#5A3B2E'), x, 0.04 + h / 2, 0.115);
+  const yellow = toy('#F5B93B', { flat: true });
+  put(g, box(0.6, 0.11, 0.2), toy('#C8463A'), 0, 0.355, -0.04);
+  const r1 = flaredRoof(0.25, 0.12, yellow);
+  r1.scale.set(1.5, 1, 0.75);
+  r1.position.set(0, 0.41, -0.04);
+  g.add(r1);
+  put(g, box(0.28, 0.07, 0.14), toy('#C8463A'), 0, 0.55, -0.04);
+  const r2 = flaredRoof(0.16, 0.11, yellow);
+  r2.scale.set(1.3, 1, 0.8);
+  r2.position.set(0, 0.585, -0.04);
+  g.add(r2);
+  for (const x of [-0.37, 0.37]) {
+    put(g, box(0.12, 0.08, 0.16), toy('#C8463A'), x, 0.34, 0.16);
+    const r = flaredRoof(0.11, 0.09, yellow);
+    r.position.set(x, 0.38, 0.16);
+    g.add(r);
+  }
+  redFlag(g, 0, 0.3, -0.26, 0.62, 0.24);
+  pennant(g, owner, 0, 0.04, 0.34);
+  return g;
+}
+
+/** Hội An: Chùa Cầu, the old covered bridge. */
+function chuaCau(owner: string) {
+  const g = pad('#7FC46A', 0.46);
+  const canal = put(g, box(0.3, 0.02, 0.92), toy(SEA), 0, 0.05, 0);
+  canal.scale.z = 0.95;
+  for (const x of [-0.3, 0.3]) put(g, soft(0.2, 0.16, 0.26, 0.02), toy('#C9A08A'), x, 0.12, 0);
+  const arch = put(g, new THREE.TorusGeometry(0.2, 0.05, 8, 20, Math.PI), toy('#C9A08A'), 0, 0.07, 0);
+  arch.scale.set(1, 0.75, 2.6);
+  put(g, soft(0.74, 0.04, 0.26, 0.01), toy('#B5533A'), 0, 0.23, 0);
+  put(g, box(0.7, 0.12, 0.2), toy('#A84436'), 0, 0.31, 0);
+  for (let k = 0; k < 5; k++) put(g, soft(0.07, 0.08, 0.02, 0.01), toy('#4A2A1E'), -0.26 + k * 0.13, 0.31, 0.105);
+  const tile = toy('#5E7A6A');
+  const roof = gable(0.34, 0.12, 0.8, tile);
+  roof.rotation.y = Math.PI / 2;
+  roof.position.set(0, 0.37, 0);
+  g.add(roof);
+  put(g, box(0.26, 0.07, 0.16), toy('#A84436'), 0, 0.5, 0);
+  const top = gable(0.26, 0.1, 0.34, tile);
+  top.rotation.y = Math.PI / 2;
+  top.position.set(0, 0.53, 0);
+  g.add(top);
+  for (const [x, c] of [[-0.3, '#E5484D'], [0.3, '#FFB03B']] as const) {
+    const l = put(g, ball(0.035), toy(c), x, 0.3, 0.15);
+    l.scale.y = 1.2;
+  }
+  pennant(g, owner, 0, 0.62, 0);
+  return g;
+}
+
+/** Phan Thiết: the old water tower by the Cà Ty river, beside a red sand dune. */
+function thapNuoc(owner: string) {
+  const g = pad(SAND, 0.46);
+  blob(g, '#E8834A', -0.2, 0.05, -0.14, 0.26, 0.16, 0.2);
+  blob(g, '#F09A5E', 0.18, 0.05, -0.22, 0.2, 0.1, 0.16);
+  put(g, cyl(0.2, 0.22, 0.08, 8), toy(STONE), 0.08, 0.08, 0.08);
+  put(g, cyl(0.11, 0.14, 0.52, 8), toy('#F4E3B5'), 0.08, 0.38, 0.08);
+  for (let k = 0; k < 8; k++) {
+    const a = (k / 8) * Math.PI * 2;
+    put(g, box(0.02, 0.5, 0.02), toy('#D9B77A'), 0.08 + Math.cos(a) * 0.125, 0.38, 0.08 + Math.sin(a) * 0.125);
+  }
+  put(g, cyl(0.2, 0.2, 0.035, 8), toy('#F4E3B5'), 0.08, 0.66, 0.08);
+  put(g, cyl(0.15, 0.15, 0.14, 8), toy('#FFF4D9'), 0.08, 0.75, 0.08);
+  put(g, new THREE.ConeGeometry(0.24, 0.16, 8), toy(TILE, { flat: true }), 0.08, 0.9, 0.08);
+  put(g, new THREE.ConeGeometry(0.1, 0.12, 8), toy('#C8463A', { flat: true }), 0.08, 1.02, 0.08);
+  put(g, ball(0.025), toy('#FFD23F'), 0.08, 1.09, 0.08);
+  miniPalm(g, -0.3, 0.22, 0.3);
+  pennant(g, owner, 0.36, 0.04, 0.2);
+  return g;
+}
+
+/** Nha Trang: Tháp Trầm Hương, the white lotus-bud tower on the beach front. */
+function tramHuong(owner: string) {
+  const g = pad(SAND, 0.46);
+  put(g, cyl(0.46, 0.46, 0.03, 36), toy(SEA), 0, 0.03, 0);
+  put(g, cyl(0.36, 0.38, 0.05, 28), toy(SAND), 0, 0.055, 0.04);
+  put(g, cyl(0.22, 0.24, 0.07, 12), toy(STONE), 0, 0.11, 0);
+  for (let k = 0; k < 8; k++) {
+    const a = (k / 8) * Math.PI * 2;
+    const petal = blob(g, '#FFE9F1', Math.cos(a) * 0.17, 0.2, Math.sin(a) * 0.17, 0.07, 0.11, 0.035);
+    petal.rotation.y = -a + Math.PI / 2;
+    petal.rotation.x = 0;
+  }
+  const pts = [[0.001, 0], [0.14, 0], [0.15, 0.16], [0.12, 0.36], [0.09, 0.5], [0.04, 0.6], [0.001, 0.64]].map(([r, y]) => new THREE.Vector2(r, y));
+  put(g, new THREE.LatheGeometry(pts, 8), toy(WHITE, { flat: true }), 0, 0.15, 0);
+  for (const y of [0.33, 0.52]) put(g, cyl(0.16 - (y - 0.33) * 0.3, 0.16 - (y - 0.33) * 0.3, 0.025, 8), toy('#F7C9D6'), 0, y, 0);
+  put(g, new THREE.ConeGeometry(0.02, 0.12, 6), toy('#FFD23F'), 0, 0.84, 0);
+  miniPalm(g, -0.32, 0.14, 0.32);
+  miniPalm(g, 0.33, 0.1, 0.26);
+  pennant(g, owner, 0, 0.055, 0.36);
+  return g;
+}
+
+/** Vũng Tàu: the white lighthouse on Núi Nhỏ. */
+function haiDang(owner: string) {
+  const g = pad(SEA, 0.46);
+  const hill = put(g, new THREE.SphereGeometry(0.4, 9, 6, 0, Math.PI * 2, 0, Math.PI / 2), toy('#5FA36A', { flat: true }), 0, 0.04, 0);
+  hill.scale.y = 0.75;
+  put(g, cyl(0.15, 0.17, 0.06, 12), toy(STONE), 0, 0.36, 0);
+  put(g, cyl(0.075, 0.11, 0.5, 14), toy(WHITE), 0, 0.64, 0);
+  put(g, cyl(0.082, 0.09, 0.05, 14), toy('#E5484D'), 0, 0.6, 0);
+  put(g, cyl(0.12, 0.12, 0.025, 14), toy('#8E99A8'), 0, 0.9, 0);
+  put(g, cyl(0.065, 0.065, 0.1, 12), toy('#FFE27A'), 0, 0.96, 0);
+  put(g, new THREE.ConeGeometry(0.09, 0.09, 12), toy('#E5484D'), 0, 1.055, 0);
+  put(g, soft(0.14, 0.09, 0.12, 0.02), toy(WHITE), 0.17, 0.33, 0.1);
+  const roof = gable(0.17, 0.06, 0.15, toy(TILE));
+  roof.position.set(0.17, 0.375, 0.1);
+  g.add(roof);
+  tree(g, -0.22, 0.14, '#3FA765', 0.8);
+  blob(g, WHITE, 0.3, 0.05, 0.3, 0.07, 0.02, 0.04);
+  blob(g, WHITE, -0.34, 0.05, 0.2, 0.06, 0.02, 0.035);
+  pennant(g, owner, -0.2, 0.3, -0.1);
+  return g;
+}
+
+/** Ninh Bình: the limestone peaks of Tràng An, with a rowing boat on the river. */
+function trangAn(owner: string) {
+  const g = pad('#63BF6C', 0.46);
+  const river = put(g, box(0.92, 0.02, 0.26), toy(SEA), 0, 0.05, 0.14);
+  river.rotation.y = 0.35;
+  for (const [x, z, r, h, c] of [[-0.2, -0.16, 0.17, 0.62, '#4F9A62'], [0.12, -0.24, 0.15, 0.82, '#5FAE6E'], [0.32, -0.04, 0.12, 0.46, '#4F9A62'], [-0.36, 0.02, 0.09, 0.3, '#5FAE6E']] as const) {
+    blob(g, '#8E9A8C', x, 0.04 + h * 0.3, z, r, h * 0.45, r, true);
+    blob(g, c, x, 0.04 + h * 0.52, z, r * 0.92, h * 0.5, r * 0.92, true);
+  }
+  sampan(g, 0.02, 0.085, 0.16, 0.35);
+  // rice by the water
+  for (const [x, z] of [[-0.28, 0.32], [-0.18, 0.36], [-0.08, 0.38]]) blob(g, '#D8EC72', x, 0.06, z, 0.05, 0.02, 0.04);
+  pennant(g, owner, 0.34, 0.04, 0.26);
+  return g;
+}
+
+/** Hạ Long: Hòn Trống Mái, the two kissing rocks, and a junk under red sails. */
+function haLong(owner: string) {
+  const g = pad(SEA, 0.46);
+  for (const [x, lean, h] of [[-0.14, -0.22, 0.6], [0.08, 0.26, 0.52]]) {
+    const rock = blob(g, '#8E9A8C', x - 0.06, 0.04 + h / 2, -0.14, 0.11, h / 2, 0.1, true);
+    rock.rotation.z = lean;
+    const top = blob(g, '#4F9A62', x - 0.06 - lean * 0.2, 0.04 + h * 0.86, -0.14, 0.09, 0.08, 0.08, true);
+    top.rotation.z = lean;
+  }
+  blob(g, '#8E9A8C', 0.32, 0.14, -0.2, 0.09, 0.16, 0.08, true);
+  blob(g, '#4F9A62', 0.32, 0.27, -0.2, 0.075, 0.06, 0.065, true);
+  // junk
+  const junk = new THREE.Group();
+  put(junk, soft(0.34, 0.07, 0.11, 0.03), toy('#7A4A2A'), 0, 0, 0);
+  put(junk, soft(0.1, 0.06, 0.1, 0.02), toy('#B9793F'), 0.1, 0.06, 0);
+  for (const [x, h] of [[-0.09, 0.3], [0.03, 0.36], [0.13, 0.24]]) {
+    put(junk, cyl(0.008, 0.008, h, 5), toy('#4A2A1E'), x, h / 2 + 0.03, 0);
+    const sail = put(junk, new THREE.PlaneGeometry(0.13, h * 0.72, 1, 3), toy('#D9482F', { double: true }), x - 0.01, h * 0.58 + 0.03, 0.005);
+    sail.rotation.y = 0.5;
+  }
+  junk.position.set(0.06, 0.09, 0.2);
+  junk.rotation.y = -0.4;
+  g.add(junk);
+  pennant(g, owner, -0.36, 0.04, 0.2);
+  return g;
+}
+
+/** Phú Quốc: a palm-fringed island beach with a thatched hut and a sunshade. */
+function daoNgoc(owner: string) {
+  const g = pad(SEA, 0.46);
+  const island = put(g, cyl(0.34, 0.37, 0.06, 28), toy(SAND), -0.02, 0.07, -0.02);
+  island.scale.z = 0.85;
+  blob(g, '#63BF6C', -0.12, 0.1, -0.14, 0.18, 0.07, 0.13);
+  // hut on stilts
+  for (const x of [-0.06, 0.1]) for (const z of [-0.06, 0.06]) put(g, cyl(0.012, 0.012, 0.1, 5), toy(WOOD_DARK), x + 0.06, 0.15, z - 0.02);
+  put(g, soft(0.22, 0.11, 0.18, 0.02), toy(WOOD), 0.08, 0.25, -0.02);
+  const roof = flaredRoof(0.17, 0.16, toy(THATCH, { flat: true }));
+  roof.position.set(0.08, 0.3, -0.02);
+  g.add(roof);
+  // sunshade and towel
+  put(g, cyl(0.006, 0.006, 0.18, 5), toy(WHITE), -0.16, 0.19, 0.16);
+  put(g, new THREE.ConeGeometry(0.1, 0.05, 8), toy('#E5484D', { flat: true }), -0.16, 0.29, 0.16);
+  put(g, box(0.1, 0.012, 0.05), toy('#FFD23F'), -0.06, 0.106, 0.2);
+  blob(g, '#FF8A3D', 0.2, 0.105, 0.18, 0.03, 0.01, 0.03);
+  miniPalm(g, -0.24, -0.02, 0.44);
+  miniPalm(g, 0.26, -0.14, 0.36);
+  // little boat offshore
+  put(g, soft(0.14, 0.035, 0.05, 0.015), toy('#3B82F6'), 0.28, 0.06, 0.3).rotation.y = 0.5;
+  pennant(g, owner, 0.08, 0.44, -0.02);
+  return g;
+}
+
 export const LANDMARKS: Record<number, { name: string; make: (owner: string) => THREE.Group }> = {
-  39: { name: 'Bitexco', make: bitexco },
-  37: { name: 'Hồ Gươm', make: hoGuom },
-  34: { name: 'Cầu Rồng', make: cauRong },
-  32: { name: 'Nhà hát lớn', make: nhaHat },
+  1: { name: 'Thác Bản Giốc', make: banGioc },
+  3: { name: 'Cột cờ Lũng Cú', make: lungCu },
+  6: { name: 'Tượng đài Chiến thắng', make: tuongDai },
+  8: { name: 'Đồi chè Mộc Châu', make: doiChe },
+  9: { name: 'Đỉnh Fansipan', make: fansipan },
+  11: { name: 'Biển Hồ', make: bienHo },
+  13: { name: 'Voi Buôn Đôn', make: voi },
+  14: { name: 'Ga Đà Lạt', make: gaDaLat },
+  16: { name: 'Tháp Đôi', make: thapDoi },
+  18: { name: 'Ngọ Môn', make: ngoMon },
+  19: { name: 'Chùa Cầu', make: chuaCau },
+  21: { name: 'Tháp nước Phan Thiết', make: thapNuoc },
+  23: { name: 'Tháp Trầm Hương', make: tramHuong },
+  24: { name: 'Hải đăng Vũng Tàu', make: haiDang },
+  26: { name: 'Tràng An', make: trangAn },
+  27: { name: 'Hòn Trống Mái', make: haLong },
+  29: { name: 'Bãi biển đảo ngọc', make: daoNgoc },
   31: { name: 'Cầu Cần Thơ', make: cauCanTho },
+  32: { name: 'Nhà hát lớn', make: nhaHat },
+  34: { name: 'Cầu Rồng', make: cauRong },
+  37: { name: 'Hồ Gươm', make: hoGuom },
+  39: { name: 'Bitexco', make: bitexco },
 };
 
 type Style = 'stilt' | 'hoian' | 'tube';

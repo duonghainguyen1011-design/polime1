@@ -713,6 +713,7 @@ h4 {
 /* ---------- 3D stage ---------- */
 
 .stage {
+  position: relative;
   max-width: 960px;
   margin-inline: auto;
   display: grid;
@@ -821,6 +822,86 @@ h4 {
 @media (min-width: 980px) {
   .stage {
     max-width: min(960px, calc((100dvh - 220px) / 0.71));
+  }
+}
+
+/* Money changes: a quick pop beside the amount, and a big one over the board for your own money. */
+.pl-cash {
+  position: relative;
+}
+.delta {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  padding: 1px 8px 0;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 14px;
+  white-space: nowrap;
+  color: #fff;
+  pointer-events: none;
+  animation: delta 2.4s ease-out both;
+}
+.delta.up {
+  background: #1f9d57;
+}
+.delta.down {
+  background: #d7263d;
+}
+.money-pop {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 58px;
+  display: grid;
+  justify-items: center;
+  pointer-events: none;
+  z-index: 2;
+}
+.delta-big {
+  position: static;
+  padding: 4px 18px 1px;
+  font-size: clamp(22px, 6.4vw, 34px);
+  border: 3px solid #fff;
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.35);
+  animation: delta-big 2.6s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+@keyframes delta {
+  0% {
+    transform: translateY(8px) scale(0.7);
+    opacity: 0;
+  }
+  12% {
+    transform: none;
+    opacity: 1;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+}
+@keyframes delta-big {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  12% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  20% {
+    transform: none;
+  }
+  78% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-16px);
+    opacity: 0;
   }
 }
 
@@ -1710,6 +1791,9 @@ h4 {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .delta {
+    animation: none !important;
+  }
   *,
   *::before,
   *::after {
