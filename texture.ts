@@ -293,57 +293,62 @@ export function paintCenter(c: Ctx) {
   const u = (v: number) => v * S;
   const rnd = rand(7);
 
-  c.fillStyle = '#8FD46A';
+  c.fillStyle = '#4F9455';
   c.fillRect(0, 0, size, size);
   for (let k = 0; k < 90; k++) {
     c.beginPath();
     c.ellipse(u(rnd() * 9), u(rnd() * 9), u(0.25 + rnd() * 0.5), u(0.14 + rnd() * 0.2), 0, 0, Math.PI * 2);
-    c.fillStyle = rnd() > 0.5 ? 'rgba(255,255,255,0.09)' : 'rgba(40,120,50,0.07)';
+    c.fillStyle = rnd() > 0.5 ? 'rgba(190,230,140,0.1)' : 'rgba(20,70,45,0.12)';
     c.fill();
   }
 
   // Road ring just inside the squares
   rr(c, u(0.55), u(0.55), u(7.9), u(7.9), u(0.9));
   c.lineWidth = u(0.66);
-  c.strokeStyle = '#7F8A99';
+  c.strokeStyle = '#3F4757';
   c.stroke();
   c.lineWidth = u(0.56);
-  c.strokeStyle = '#A3ADBA';
+  c.strokeStyle = '#5B6475';
   c.stroke();
   c.setLineDash([u(0.22), u(0.2)]);
   c.lineWidth = u(0.045);
-  c.strokeStyle = '#ffffff';
+  c.strokeStyle = '#E8D9A0';
   c.stroke();
   c.setLineDash([]);
 
   // Rice paddies (toward the right corner of the diamond)
   const paddies: [number, number, number, number, string][] = [
-    [5.75, 1.25, 1.0, 1.05, '#B9E468'],
-    [6.85, 1.25, 1.1, 1.05, '#D8EC72'],
-    [5.75, 2.4, 0.85, 1.15, '#A6DC5C'],
-    [6.7, 2.4, 1.25, 1.15, '#C6E66A'],
+    [5.75, 1.25, 1.0, 1.05, '#5E9FA0'],
+    [6.85, 1.25, 1.1, 1.05, '#6BA89A'],
+    [5.75, 2.4, 0.85, 1.15, '#56958F'],
+    [6.7, 2.4, 1.25, 1.15, '#64A39C'],
   ];
   for (const [x, y, w, h, color] of paddies) {
     rr(c, u(x), u(y), u(w), u(h), u(0.12));
-    c.fillStyle = '#C9A66B';
+    c.fillStyle = '#8A6B45';
     c.fill();
     rr(c, u(x + 0.05), u(y + 0.05), u(w - 0.1), u(h - 0.1), u(0.09));
     c.fillStyle = color;
     c.fill();
-    c.fillStyle = 'rgba(60,140,60,0.5)';
-    for (let yy = y + 0.2; yy < y + h - 0.12; yy += 0.17) {
-      for (let xx = x + 0.2; xx < x + w - 0.12; xx += 0.17) c.fillRect(u(xx), u(yy), u(0.035), u(0.07));
+    // flooded field: soft reflections on the water between the rice rows
+    c.strokeStyle = 'rgba(255,255,255,0.16)';
+    c.lineWidth = u(0.02);
+    for (let yy = y + 0.2; yy < y + h - 0.1; yy += 0.23) {
+      c.beginPath();
+      c.moveTo(u(x + 0.12), u(yy));
+      c.lineTo(u(x + w - 0.12), u(yy));
+      c.stroke();
     }
   }
 
   // Lotus pond (toward the left corner)
   c.beginPath();
   c.ellipse(u(2.2), u(6.8), u(1.32), u(1.05), 0.3, 0, Math.PI * 2);
-  c.fillStyle = '#F1DDA4';
+  c.fillStyle = '#B8A06A';
   c.fill();
   c.beginPath();
   c.ellipse(u(2.2), u(6.8), u(1.2), u(0.93), 0.3, 0, Math.PI * 2);
-  c.fillStyle = '#5AC8EE';
+  c.fillStyle = '#2F86A8';
   c.fill();
   c.strokeStyle = 'rgba(255,255,255,0.55)';
   c.lineWidth = u(0.03);
@@ -357,18 +362,18 @@ export function paintCenter(c: Ctx) {
     c.moveTo(u(x), u(y));
     c.arc(u(x), u(y), u(r), 0.5, Math.PI * 2 + 0.1);
     c.closePath();
-    c.fillStyle = '#3FAE5A';
+    c.fillStyle = '#2F8F55';
     c.fill();
   }
 
   // Packed-earth yard where the dice land (toward the Go corner)
   c.beginPath();
   c.arc(u(6.35), u(6.35), u(1.42), 0, Math.PI * 2);
-  c.fillStyle = '#DCC58B';
+  c.fillStyle = '#A88B5A';
   c.fill();
   c.beginPath();
   c.arc(u(6.35), u(6.35), u(1.32), 0, Math.PI * 2);
-  c.fillStyle = '#EDDCAA';
+  c.fillStyle = '#C7AC78';
   c.fill();
 
   // Wild flowers
@@ -384,36 +389,4 @@ export function paintCenter(c: Ctx) {
     c.fillStyle = ['#ffffff', '#FFE45C', '#FF9CC0'][k % 3];
     c.fill();
   }
-}
-
-/** Red cloth banner with gold lettering, strung between two bamboo poles. */
-export function paintBanner(c: Ctx) {
-  const w = c.canvas.width;
-  const h = c.canvas.height;
-  c.clearRect(0, 0, w, h);
-  // cloth with a gentle sag
-  c.beginPath();
-  c.moveTo(0, h * 0.06);
-  c.quadraticCurveTo(w / 2, h * 0.16, w, h * 0.06);
-  c.lineTo(w, h * 0.86);
-  c.quadraticCurveTo(w / 2, h * 0.98, 0, h * 0.86);
-  c.closePath();
-  const g = c.createLinearGradient(0, 0, 0, h);
-  g.addColorStop(0, '#F0484F');
-  g.addColorStop(1, '#D62F3C');
-  c.fillStyle = g;
-  c.fill();
-  c.lineWidth = h * 0.035;
-  c.strokeStyle = '#FFD23F';
-  c.stroke();
-  for (const x of [w * 0.085, w * 0.915]) star(c, x, h * 0.49, h * 0.15, '#FFD23F');
-  c.font = `800 ${h * 0.62}px ${DISPLAY}`;
-  c.textAlign = 'center';
-  c.textBaseline = 'alphabetic';
-  c.lineJoin = 'round';
-  c.lineWidth = h * 0.09;
-  c.strokeStyle = '#8F1522';
-  c.strokeText('Polime', w / 2, h * 0.73);
-  c.fillStyle = '#FFE45C';
-  c.fillText('Polime', w / 2, h * 0.73);
 }

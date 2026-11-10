@@ -4,9 +4,9 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { BOARD, GROUPS, OWNABLE } from './board';
 import { LANDMARKS, buildingFor, cageProp, flag, lixiProp, mysteryProp, planeProp, powerProp, waterProp } from './buildings';
-import { bannerPole, buildDecor } from './decor';
+import { buildDecor } from './decor';
 import { lotCenter, standSpot, tileCenter, tileRect, TILE_TOP, UNITS } from './layout';
-import { paintBanner, paintBoard, paintCenter } from './texture';
+import { paintBoard, paintCenter } from './texture';
 import { DIRECTIONAL, sculpt } from './tokens3d';
 import type { GameState, TokenId } from './types';
 
@@ -123,6 +123,7 @@ export class BoardScene {
   private disposed = false;
   private down: { x: number; y: number; moved: number } | null = null;
   private raycaster = new THREE.Raycaster();
+  private decorTick: (now: number) => void = () => {};
 
   constructor(private canvas: HTMLCanvasElement, private onTile: (i: number) => void) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
@@ -134,9 +135,10 @@ export class BoardScene {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     // Bright, even daylight: a soft sky fill plus a sun from the front-left.
-    this.scene.add(new THREE.HemisphereLight('#ffffff', '#CFE8B9', 1.75));
-    const sun = new THREE.DirectionalLight('#FFF6E0', 1.85);
-    sun.position.set(5, 14, 11);
+    // Golden-hour light: a low warm sun with a cool dusk fill.
+    this.scene.add(new THREE.HemisphereLight('#D3DBFF', '#4A4266', 1.5));
+    const sun = new THREE.DirectionalLight('#FFC98A', 2.3);
+    sun.position.set(2, 9, 13);
     sun.castShadow = true;
     const big = Math.min(window.innerWidth, window.innerHeight) > 600;
     sun.shadow.mapSize.set(big ? 2048 : 1536, big ? 2048 : 1536);
@@ -146,11 +148,11 @@ export class BoardScene {
     this.scene.add(sun);
 
     // The island: a sandy slab on a chunk of earth.
-    const slab = new THREE.Mesh(new RoundedBoxGeometry(12.9, 0.5, 12.9, 3, 0.2), new THREE.MeshStandardMaterial({ color: '#EAD9A8', roughness: 0.9 }));
+    const slab = new THREE.Mesh(new RoundedBoxGeometry(12.9, 0.5, 12.9, 3, 0.2), new THREE.MeshStandardMaterial({ color: '#B9A476', roughness: 0.9 }));
     slab.position.y = -0.25;
     slab.receiveShadow = true;
     this.scene.add(slab);
-    const earth = new THREE.Mesh(new RoundedBoxGeometry(12.5, 0.55, 12.5, 3, 0.25), new THREE.MeshStandardMaterial({ color: '#C4905F', roughness: 0.95 }));
+    const earth = new THREE.Mesh(new RoundedBoxGeometry(12.5, 0.55, 12.5, 3, 0.25), new THREE.MeshStandardMaterial({ color: '#7A5A3C', roughness: 0.95 }));
     earth.position.y = -0.7;
     this.scene.add(earth);
 
@@ -166,7 +168,9 @@ export class BoardScene {
     center.receiveShadow = true;
     this.scene.add(center);
     paintCenter(cc.getContext('2d')!);
-    this.scene.add(buildDecor());
+    const decor = buildDecor();
+    this.scene.add(decor.group);
+    this.decorTick = decor.tick;
 
     // The 40 squares: raised blocks with a painted face on top.
     this.boardCanvas.width = this.boardCanvas.height = 2048;
@@ -224,36 +228,9 @@ export class BoardScene {
     cage.position.set(w(1.03), TILE_TOP, w(10.97));
     this.addPickable(cage, 10);
 
-    // Banner logo strung between two bamboo poles
-    const bc = document.createElement('canvas');
-    bc.width = 1024;
-    bc.height = 320;
-    const bannerTex = new THREE.CanvasTexture(bc);
-    bannerTex.colorSpace = THREE.SRGBColorSpace;
-    const BW = 4.6;
-    const BH = (BW * 320) / 1024;
-    const banner = new THREE.Mesh(new THREE.PlaneGeometry(BW, BH), new THREE.MeshBasicMaterial({ map: bannerTex, transparent: true, toneMapped: false }));
-    const anchor = new THREE.Vector3(-0.6, 0, -0.6);
-    this.placeCamera(new THREE.Vector3());
-    banner.quaternion.copy(this.camera.quaternion);
-    banner.position.copy(anchor).add(new THREE.Vector3(0, 0.55, 0)).addScaledVector(this.up, BH / 2);
-    this.scene.add(banner);
-    for (const s of [-1, 1]) {
-      const pole = bannerPole(2.35);
-      pole.position.copy(anchor).addScaledVector(SIDE, s * (BW / 2 + 0.02));
-      pole.position.y = 0.012;
-      this.scene.add(pole);
-    }
-    const paintStatic = () => {
-      paintBanner(bc.getContext('2d')!);
-      bannerTex.needsUpdate = true;
-    };
-    paintStatic();
-
     // Repaint once the web fonts are ready so every label uses the rounded display face.
     Promise.all(['800 24px "Baloo 2"', '700 24px "Baloo 2"'].map((f) => document.fonts?.load(f, 'Khởi hành ₫').catch(() => null))).then(() => {
       if (this.disposed) return;
-      paintStatic();
       this.paintKey = '';
       if (this.lastState) this.paint(this.lastState);
     });
@@ -643,6 +620,7 @@ export class BoardScene {
     for (const b of this.bobbers) {
       b.o.position.y = b.y + Math.sin(now / 520 + b.phase) * 0.035;
     }
+    if (!reduceMotion()) this.decorTick(now);
     for (const s of this.spinners) s.rotation.y = -Math.PI / 4 + Math.sin(now / 900) * 0.5;
     this.renderer.render(this.scene, this.camera);
   };

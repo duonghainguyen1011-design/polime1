@@ -46,7 +46,7 @@ Without the two values the app still runs, with online play switched off and pra
 - House rule: taxes, fines, jail fees and card payments go into the **Bãi đỗ xe** pot; landing there collects it.
 - House rule: a player in jail collects no rent.
 - Unbought cities go to auction (turn-based bidding).
-- Building is even across a colour group; the bank has 32 houses and 12 hotels.
+- House rule: any city you own can take up to 2 houses. The 3rd and 4th house and the hotel need the whole colour group, built evenly. The bank never runs out of houses or hotels.
 - Full trading of cities and cash, proposed on your own turn (up to 3 offers per turn).
 - Debts you can't cover lead to selling houses, mortgaging, or bankruptcy. Last player standing wins.
 
@@ -68,7 +68,7 @@ texture.ts      paints the square faces, the centre and the banner logo
 layout.ts       where every square, plot and label sits on the board
 Board3D.tsx     React wrapper for the 3D board (falls back to the flat board without WebGL)
 App.tsx, BoardView.tsx, Game.tsx, Home.tsx, Lobby.tsx, sheets.tsx, parts.tsx, icons.tsx, hooks.ts   interface
-styles.css      bright cartoon look for every screen
+styles.css      dusk-toned cartoon look for every screen
 schema.sql      run once in Supabase
 simulate.ts     plays hundreds of bot games to check the rules: npm run simulate
 ```

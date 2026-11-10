@@ -140,22 +140,34 @@ export function rentFor(s: GameState, sq: number, diceTotal: number, opts: { air
 }
 
 /** What the rent table shows for an unowned or owned square (no dice context). */
+/** Does this square's owner have any building on their squares of the same colour group? */
 export function groupHasHouses(s: GameState, sq: number) {
   const d = BOARD[sq];
   if (d.kind !== 'street') return false;
-  return GROUP_SQS[d.group].some((i) => s.props[i].houses > 0);
+  const owner = s.props[sq].owner;
+  return GROUP_SQS[d.group].some((i) => s.props[i].owner === owner && s.props[i].houses > 0);
 }
+
+/** House rule: up to this many houses can be built on any city you own; more needs the whole colour group. */
+export const FREE_HOUSES = 2;
 
 export function canBuild(s: GameState, pid: string, sq: number): string | null {
   const d = BOARD[sq];
   if (d.kind !== 'street') return 'Chỉ xây được trên ô thành phố';
   const ps = s.props[sq];
   if (ps.owner !== pid) return 'Bạn không sở hữu ô này';
-  if (!ownsGroup(s, pid, d.group)) return 'Cần sở hữu cả nhóm màu để xây';
-  if (GROUP_SQS[d.group].some((i) => s.props[i].mortgaged)) return 'Nhóm màu còn ô đang thế chấp';
+  if (ps.mortgaged) return 'Ô này đang thế chấp';
   if (ps.houses >= 5) return 'Đã có khách sạn';
-  const min = Math.min(...GROUP_SQS[d.group].map((i) => s.props[i].houses));
-  if (ps.houses > min) return 'Phải xây đều các ô trong nhóm';
+  const mine = GROUP_SQS[d.group].filter((i) => s.props[i].owner === pid);
+  if (ownsGroup(s, pid, d.group)) {
+    if (mine.some((i) => s.props[i].mortgaged)) return 'Nhóm màu còn ô đang thế chấp';
+    const min = Math.min(...mine.map((i) => s.props[i].houses));
+    // Even building applies from the third house up; the first two are free on any city.
+    if (ps.houses >= FREE_HOUSES && ps.houses > min) return 'Từ nhà thứ 3, phải xây đều các ô trong nhóm';
+  } else if (ps.houses >= FREE_HOUSES) {
+    const missing = GROUP_SQS[d.group].filter((i) => s.props[i].owner !== pid).map((i) => BOARD[i].name);
+    return `Muốn xây hơn ${FREE_HOUSES} nhà, bạn cần sở hữu cả nhóm màu. Còn thiếu: ${missing.join(', ')}`;
+  }
   const { housesLeft, hotelsLeft } = buildingCounts(s);
   if (ps.houses === 4 && hotelsLeft <= 0) return 'Ngân hàng đã hết khách sạn';
   if (ps.houses < 4 && housesLeft <= 0) return 'Ngân hàng đã hết nhà';
@@ -169,8 +181,8 @@ export function canSell(s: GameState, pid: string, sq: number): string | null {
   const ps = s.props[sq];
   if (ps.owner !== pid) return 'Bạn không sở hữu ô này';
   if (ps.houses <= 0) return 'Không có nhà để bán';
-  const max = Math.max(...GROUP_SQS[d.group].map((i) => s.props[i].houses));
-  if (ps.houses < max) return 'Phải bán đều các ô trong nhóm';
+  const max = Math.max(...GROUP_SQS[d.group].filter((i) => s.props[i].owner === pid).map((i) => s.props[i].houses));
+  if (ps.houses > FREE_HOUSES && ps.houses < max) return 'Phải bán đều các ô trong nhóm';
   if (ps.houses === 5 && buildingCounts(s).housesLeft < 4) return 'Ngân hàng không đủ nhà để đổi khách sạn';
   return null;
 }

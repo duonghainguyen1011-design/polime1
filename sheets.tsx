@@ -77,7 +77,14 @@ function Row({ k, v, hot, sub }: { k: string; v: string; hot?: boolean; sub?: bo
 function Actions({ i, state, me, dispatch }: { i: number; state: GameState; me: string; dispatch: Dispatch }) {
   const mode = manageMode(state, me);
   const ps = state.props[i];
-  if (!ps || ps.owner !== me || mode === 'none') return null;
+  if (!ps || ps.owner !== me) return null;
+  if (mode === 'none') {
+    return (
+      <div className="deed-actions">
+        <p className="hint build-why">Bạn chỉ xây nhà, bán hoặc thế chấp được trong lượt của mình.</p>
+      </div>
+    );
+  }
   const sq = ownable(i);
   const buttons: { label: string; err: string | null; act: Action; show: boolean; kind?: string }[] = [
     { label: `Xây ${ps.houses === 4 ? 'khách sạn' : 'nhà'} (−${vndShort(sq.kind === 'street' ? sq.house : 0)})`, err: canBuild(state, me, i), act: { t: 'build', sq: i }, show: sq.kind === 'street' && mode === 'full' && ps.houses < 5 },
@@ -97,7 +104,7 @@ function Actions({ i, state, me, dispatch }: { i: number; state: GameState; me: 
           </button>
         ))}
       </div>
-      {firstErr && visible.every((b) => b.err) && <p className="hint">{firstErr}</p>}
+      {firstErr && <p className="hint build-why">{firstErr}</p>}
     </div>
   );
 }
@@ -256,7 +263,7 @@ export function TradeSheet({ state, me, dispatch, onClose }: { state: GameState;
           <Stepper id="get-cash" value={getCash} max={them?.cash ?? 0} onChange={setGetCash} />
         </section>
       </div>
-      <p className="hint">Ô có nhà trong nhóm màu phải bán hết nhà trước khi trao đổi. Ô đang thế chấp được chuyển nguyên trạng.</p>
+      <p className="hint">Thành phố có nhà (hoặc cùng nhóm màu với thành phố có nhà của bạn) phải bán hết nhà trước khi trao đổi. Ô đang thế chấp được chuyển nguyên trạng.</p>
       {err && <p className="error">{err}</p>}
       <div className="btn-row end">
         <button type="button" className="btn btn-quiet" onClick={onClose}>

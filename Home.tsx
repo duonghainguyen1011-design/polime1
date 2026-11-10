@@ -100,7 +100,8 @@ export function Home({ defaults, canResume, busy, onCreate, onJoin, onPractice, 
           <ul>
             <li>Mỗi người bắt đầu với 15.000.000₫. Đi qua Khởi hành nhận 2.000.000₫.</li>
             <li>Dừng ở thành phố còn trống thì được mua. Không mua thì thành phố được đem ra đấu giá.</li>
-            <li>Sở hữu cả nhóm màu để thu tiền thuê gấp đôi và bắt đầu xây nhà, rồi khách sạn.</li>
+            <li>Thành phố nào của bạn cũng xây được tối đa 2 nhà. Muốn xây nhà thứ 3, thứ 4 và khách sạn thì phải sở hữu cả nhóm màu.</li>
+            <li>Sở hữu cả nhóm màu mà chưa xây gì thì tiền thuê gấp đôi.</li>
             <li>Thuế, tiền phạt và khoản trả theo thẻ dồn vào quỹ Bãi đỗ xe. Ai dừng ở đó nhận hết quỹ.</li>
             <li>Người đang ở tù không thu được tiền thuê.</li>
             <li>Trong lượt của mình, bạn có thể đề nghị giao dịch thành phố và tiền mặt với người khác.</li>

@@ -53,8 +53,8 @@ export const GO_SALARY = 200;
 export const START_CASH = 1500;
 export const JAIL_FINE = 50;
 export const JAIL_POS = 10;
-export const HOUSE_SUPPLY = 32;
-export const HOTEL_SUPPLY = 12;
+export const HOUSE_SUPPLY = 88; // enough for every city, since any city can take two houses
+export const HOTEL_SUPPLY = 22;
 
 export const GROUPS: Record<Group, { label: string; color: string; ink: string }> = {
   brown: { label: 'Đông Bắc', color: '#C98F62', ink: '#33200F' },

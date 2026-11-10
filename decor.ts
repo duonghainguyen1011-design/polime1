@@ -1,4 +1,4 @@
-// Scenery for the middle of the board: palms, bamboo, a basket boat on the pond, a farmer and a buffalo in the paddies.
+// Scenery for the middle of the board: palms, bamboo, a basket boat on the pond, a farmer in the paddies.
 import * as THREE from 'three';
 import { put, toy } from './buildings';
 import { sculpt } from './tokens3d';
@@ -14,6 +14,7 @@ function palm(h: number, lean: number) {
     x += lean * (k + 1) * 0.02;
   }
   const crown = new THREE.Group();
+  crown.name = 'crown';
   crown.position.set(x, h, 0);
   for (let a = 0; a < 7; a++) {
     const pivot = new THREE.Group();
@@ -39,15 +40,6 @@ function bamboo() {
   return g;
 }
 
-/** Bamboo pole for the banner. */
-export function bannerPole(h: number) {
-  const g = new THREE.Group();
-  put(g, cyl(0.05, 0.06, h, 10), toy('#7CCB5A'), 0, h / 2, 0);
-  for (let y = 0.4; y < h; y += 0.4) put(g, cyl(0.065, 0.065, 0.035, 10), toy('#5DAE45'), 0, y, 0);
-  put(g, ball(0.08), toy('#FFD23F'), 0, h + 0.05, 0);
-  return g;
-}
-
 function farmer(shirt: string) {
   const g = new THREE.Group();
   put(g, new THREE.CapsuleGeometry(0.075, 0.12, 4, 10), toy(shirt), 0, 0.14, 0);
@@ -68,6 +60,7 @@ function basketBoat() {
   g.add(f);
   const paddle = put(g, cyl(0.012, 0.012, 0.42, 6), toy('#8A5A36'), 0.16, 0.26, 0.08);
   paddle.rotation.z = -0.7;
+  paddle.name = 'paddle';
   return g;
 }
 
@@ -79,7 +72,15 @@ function haystack() {
   return g;
 }
 
-/** Everything is placed in world units; the centre of the board is the origin and +x, +z point toward the camera. */
+// Rice paddies in world units: [x, z, width, depth, colour of the young rice]
+const PADDIES: [number, number, number, number, string][] = [
+  [1.25, -3.25, 1.0, 1.05, '#8FD05A'],
+  [2.35, -3.25, 1.1, 1.05, '#C9DB5A'],
+  [1.25, -2.1, 0.85, 1.15, '#6FC25A'],
+  [2.2, -2.1, 1.25, 1.15, '#A9D65A'],
+];
+
+/** Everything is placed in world units; the centre of the board is the origin and +x, +z point toward the camera. `tick` animates it. */
 export function buildDecor() {
   const g = new THREE.Group();
   const add = (o: THREE.Object3D, x: number, z: number, s = 1, ry = 0) => {
@@ -87,24 +88,81 @@ export function buildDecor() {
     o.scale.multiplyScalar(s);
     o.rotation.y = ry;
     g.add(o);
+    return o;
   };
-  // far corner, behind the banner
+  // far corner
   add(palm(1.15, 1), -2.7, -2.7, 1);
   add(palm(0.95, -1), -1.9, -3.05, 1);
   add(bamboo(), -3.1, -1.3, 0.72);
   add(bamboo(), -0.6, -3.15, 0.6, 1);
   // pond on the left
   add(palm(1.1, -1), -3.2, 0.9, 0.95, 2);
-  add(basketBoat(), -2.35, 2.3, 1, 0.6);
-  const lotus1 = sculpt('hoa-sen');
-  add(lotus1, -1.75, 2.75, 0.45);
-  const lotus2 = sculpt('hoa-sen');
-  add(lotus2, -3.0, 1.95, 0.36, 1);
+  const boat = add(basketBoat(), -2.35, 2.3, 1, 0.6);
+  add(sculpt('hoa-sen'), -1.75, 2.75, 0.45);
+  add(sculpt('hoa-sen'), -3.0, 1.95, 0.36, 1);
+  const ripples: THREE.Mesh[] = [];
+  for (let k = 0; k < 3; k++) {
+    const r = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.33, 40), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0, depthWrite: false }));
+    r.rotation.x = -Math.PI / 2;
+    r.position.y = 0.022;
+    g.add(r);
+    ripples.push(r);
+  }
   // paddies on the right
-  add(farmer('#B5533A'), 1.85, -2.85, 1, 0.5);
-  const buffalo = sculpt('trau');
-  add(buffalo, 2.75, -1.75, 0.85, Math.PI * 0.75);
+  const worker = add(farmer('#B5533A'), 1.85, -2.85, 1, 0.5);
   add(haystack(), 3.1, -0.55, 1);
   add(palm(1.15, 1), 3.15, -3.15, 0.9, 4);
-  return g;
+
+  // Young rice: hundreds of little blades that ripple in the wind.
+  const spots: [number, number, number][] = [];
+  PADDIES.forEach(([px, pz, pw, pd], n) => {
+    for (let x = px + 0.13; x < px + pw - 0.08; x += 0.115) {
+      for (let z = pz + 0.13; z < pz + pd - 0.08; z += 0.115) {
+        if (Math.hypot(x - 1.85, z + 2.85) < 0.2) continue; // leave room for the farmer
+        spots.push([x + ((x * 37 + z * 91) % 1) * 0.03, z, n]);
+      }
+    }
+  });
+  const blade = new THREE.ConeGeometry(0.035, 0.2, 4);
+  blade.translate(0, 0.1, 0);
+  const rice = new THREE.InstancedMesh(blade, new THREE.MeshStandardMaterial({ roughness: 0.8 }), spots.length);
+  const color = new THREE.Color();
+  spots.forEach(([, , n], k) => rice.setColorAt(k, color.set(PADDIES[n][4]).offsetHSL(0, 0, ((k * 7) % 5) * 0.012 - 0.02)));
+  rice.castShadow = true;
+  g.add(rice);
+  const crowns: THREE.Object3D[] = [];
+  g.traverse((o) => o.name === 'crown' && crowns.push(o));
+  const paddle = boat.getObjectByName('paddle')!;
+  const dummy = new THREE.Object3D();
+
+  const tick = (now: number) => {
+    const t = now / 1000;
+    // wind crossing the paddies as a travelling wave
+    spots.forEach(([x, z], k) => {
+      const wave = Math.sin(t * 2.2 - x * 2.6 - z * 1.4) * 0.5 + Math.sin(t * 3.7 + k) * 0.08;
+      dummy.position.set(x, 0.02, z);
+      dummy.rotation.set(wave * 0.3, 0, wave * 0.38);
+      dummy.scale.set(1, 0.85 + ((k * 13) % 7) * 0.05, 1);
+      dummy.updateMatrix();
+      rice.setMatrixAt(k, dummy.matrix);
+    });
+    rice.instanceMatrix.needsUpdate = true;
+    // the basket boat drifts in a slow loop, rocking as it is paddled
+    const a = t * 0.35;
+    boat.position.set(-2.3 + Math.cos(a) * 0.42, 0.02 + Math.sin(t * 2.4) * 0.012, 2.3 + Math.sin(a) * 0.3);
+    boat.rotation.set(Math.sin(t * 1.9) * 0.07, -a + 1.2, Math.sin(t * 2.3) * 0.06);
+    paddle.rotation.z = -0.7 + Math.sin(t * 2.6) * 0.35;
+    ripples.forEach((r, k) => {
+      const p = (t * 0.45 + k / 3) % 1;
+      r.position.x = boat.position.x;
+      r.position.z = boat.position.z;
+      r.scale.setScalar(0.9 + p * 1.5);
+      (r.material as THREE.MeshBasicMaterial).opacity = 0.5 * (1 - p);
+    });
+    // the farmer bends to plant
+    worker.rotation.x = 0.25 + Math.sin(t * 1.6) * 0.25;
+    crowns.forEach((c, k) => (c.rotation.z = Math.sin(t * 1.1 + k * 1.7) * 0.07));
+  };
+  tick(0);
+  return { group: g, tick };
 }
