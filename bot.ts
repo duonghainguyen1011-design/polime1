@@ -35,6 +35,7 @@ export function botAction(s: GameState, pid: string): Action | null {
 
   // 4. Own turn
   if (current(s).id !== pid) return null;
+  if (s.step === 'card') return { t: 'resolveCard' };
   if (s.step === 'roll' && s.tradesThisTurn === 0 && s.tradesThisTurn < MAX_TRADES_PER_TURN) {
     const offer = findTrade(s, pid);
     if (offer) return { t: 'proposeTrade', offer };
@@ -57,6 +58,23 @@ export function botAction(s: GameState, pid: string): Action | null {
     .filter((i) => me.cash - unmortgageCost(i) >= 500)
     .sort((a, b) => groupWeight(s, pid, b) - groupWeight(s, pid, a))[0];
   if (unm !== undefined) return { t: 'unmortgage', sq: unm };
+  return { t: 'endTurn' };
+}
+
+/**
+ * What happens when a connected player runs out of time: only what the game needs to move on.
+ * Roll, skip any purchase, pass in auctions, turn down trades, carry out the card and end the turn.
+ * It never buys, builds or trades with the player's money.
+ */
+export function timeoutAction(s: GameState, pid: string): Action | null {
+  if (actorOf(s) !== pid) return null;
+  if (s.debts[0]?.debtor === pid) return botAction(s, pid);
+  if (s.auction) return { t: 'pass' };
+  if (s.trade) return { t: 'rejectTrade' };
+  if (current(s).id !== pid) return null;
+  if (s.step === 'card') return { t: 'resolveCard' };
+  if (s.step === 'roll') return { t: 'roll' };
+  if (s.step === 'buy') return { t: 'skip' };
   return { t: 'endTurn' };
 }
 

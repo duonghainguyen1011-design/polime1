@@ -24,9 +24,9 @@ function check(s: GameState, where: string) {
   }
   const { housesLeft, hotelsLeft } = buildingCounts(s);
   if (housesLeft < 0 || housesLeft > HOUSE_SUPPLY || hotelsLeft < 0 || hotelsLeft > HOTEL_SUPPLY) throw new Error(`${where}: supply ${housesLeft}/${hotelsLeft}`);
-  if (s.decks.chance.length + s.players.reduce((n, p) => n + p.jailCards.filter((c) => c === 'chance').length, 0) !== 16)
+  if (s.decks.chance.length + s.players.reduce((n, p) => n + p.jailCards.filter((c) => c === 'chance').length, 0) + (s.card?.pending && s.card.deck === 'chance' ? 1 : 0) !== 16)
     throw new Error(`${where}: chance deck size broken`);
-  if (s.decks.chest.length + s.players.reduce((n, p) => n + p.jailCards.filter((c) => c === 'chest').length, 0) !== 16)
+  if (s.decks.chest.length + s.players.reduce((n, p) => n + p.jailCards.filter((c) => c === 'chest').length, 0) + (s.card?.pending && s.card.deck === 'chest' ? 1 : 0) !== 16)
     throw new Error(`${where}: chest deck size broken`);
 }
 
@@ -46,7 +46,7 @@ for (let g = 0; g < GAMES; g++) {
     const actor = actorOf(s)!;
     const a = botAction(s, actor);
     if (!a) throw new Error(`game ${g}: no bot action for actor ${actor}`);
-    if (a.t === 'endTurn') turns++;
+    if (a.t === "endTurn") turns++;
     try {
       s = apply(s, actor, a, rng);
     } catch (e) {

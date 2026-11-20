@@ -6,6 +6,8 @@ import { GameView } from './Game';
 import { Home } from './Home';
 import { useConn } from './hooks';
 import { Lobby } from './Lobby';
+import { setLang, t, useLang } from './i18n';
+import type { Settings } from './types';
 
 const store = {
   get(k: string) {
@@ -48,6 +50,7 @@ function setUrlRoom(code: string | null) {
 }
 
 export default function App() {
+  useLang();
   const [conn, setConn] = useState<Conn | null>(null);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
@@ -116,9 +119,9 @@ export default function App() {
             setUrlRoom(code);
             setConn(openRoom(code, ME));
           }}
-          onPractice={(name, token, bots) => {
+          onPractice={(name, token, bots, settings: Settings) => {
             saveProfile(name, token);
-            setConn(createPractice(ME, name, token, bots));
+            setConn(createPractice(ME, name, token, bots, settings));
           }}
           onResume={() => {
             const c = resumePractice(ME);
@@ -131,7 +134,7 @@ export default function App() {
   }
 
   return (
-    <Shell onHome={leave} code={conn.code}>
+    <Shell onHome={leave} code={conn.local ? t('Chơi thử', 'Practice') : conn.code}>
       <Room conn={conn} notify={notify} profile={profile} saveProfile={saveProfile} onLeave={leave} />
       <Toast toast={toast} />
     </Shell>
@@ -145,12 +148,12 @@ function Room({ conn, notify, profile, saveProfile, onLeave }: { conn: Conn; not
       <div className="notice">
         <p>{error}</p>
         <button type="button" className="btn btn-primary" onClick={onLeave}>
-          Về trang chủ
+          {t('Về trang chủ', 'Back to home')}
         </button>
       </div>
     );
   }
-  if (!state) return <div className="notice">Đang mở phòng {conn.code}</div>;
+  if (!state) return <div className="notice">{t(`Đang mở phòng ${conn.code}`, `Opening room ${conn.code}`)}</div>;
   if (state.phase === 'lobby') return <Lobby conn={conn} state={state} notify={notify} defaults={profile} onProfile={saveProfile} />;
   return <GameView conn={conn} state={state} online={online} notify={notify} onLeave={onLeave} />;
 }
@@ -158,15 +161,31 @@ function Room({ conn, notify, profile, saveProfile, onLeave }: { conn: Conn; not
 function Shell({ children, onHome, code }: { children: React.ReactNode; onHome: (() => void) | null; code?: string }) {
   return (
     <div className="app">
-      {onHome && (
-        <header className="topbar">
-          <button type="button" className="topbar-mark" onClick={onHome} aria-label="Về trang chủ">
-            Polime
-          </button>
-          {code && <span className="topbar-code">{code}</span>}
-        </header>
-      )}
+      <header className={`topbar${onHome ? '' : ' bare'}`}>
+        {onHome && (
+          <div className="topbar-left">
+            <button type="button" className="topbar-mark" onClick={onHome} aria-label={t('Về trang chủ', 'Back to home')}>
+              Polime
+            </button>
+            {code && <span className="topbar-code">{code}</span>}
+          </div>
+        )}
+        <LangSwitch />
+      </header>
       <main>{children}</main>
+    </div>
+  );
+}
+
+function LangSwitch() {
+  const lang = useLang();
+  return (
+    <div className="lang" role="radiogroup" aria-label={t('Ngôn ngữ', 'Language')}>
+      {(['vi', 'en'] as const).map((l) => (
+        <button key={l} type="button" role="radio" aria-checked={lang === l} className={lang === l ? 'on' : ''} onClick={() => setLang(l)}>
+          {l.toUpperCase()}
+        </button>
+      ))}
     </div>
   );
 }

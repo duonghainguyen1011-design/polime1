@@ -2,13 +2,14 @@
 // a paddy-field centre, cartoon buildings, painted tokens and tumbling dice.
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import { BOARD, GROUPS, OWNABLE } from './board';
+import { BOARD, GROUPS, MAX_LEVEL, OWNABLE } from './board';
 import { LANDMARKS, buildingFor, cageProp, flag, lixiProp, mysteryProp, planeProp, powerProp, waterProp } from './buildings';
 import { buildDecor } from './decor';
 import { lotCenter, standSpot, tileCenter, tileRect, TILE_TOP, UNITS } from './layout';
 import { paintBoard, paintCenter } from './texture';
 import { P, rentFor } from './engine';
 import { vndShort } from './format';
+import { getLang } from './i18n';
 import { DIRECTIONAL, sculpt } from './tokens3d';
 import type { GameState, TokenId } from './types';
 
@@ -358,7 +359,7 @@ export class BoardScene {
   }
 
   private paint(state: GameState) {
-    const key = JSON.stringify([state.pot, OWNABLE.map((i) => [state.props[i]?.owner, state.props[i]?.mortgaged]), state.players.map((p) => p.color)]);
+    const key = JSON.stringify([getLang(), state.pot, OWNABLE.map((i) => [state.props[i]?.owner, state.props[i]?.mortgaged]), state.players.map((p) => p.color)]);
     if (key === this.paintKey) return;
     this.paintKey = key;
     paintBoard(this.boardCanvas.getContext('2d')!, state);
@@ -451,7 +452,7 @@ export class BoardScene {
         this.buildings.delete(i);
         if (key && sq.kind === 'street' && owner) {
           const g = buildingFor(i, level, sq.group, GROUPS[sq.group].color, owner.color);
-          const scale = level >= 5 && LANDMARKS[i] && i !== 39 ? 1.22 : 1.12;
+          const scale = level >= MAX_LEVEL && LANDMARKS[i] && i !== 39 ? 1.22 : 1.12;
           g.scale.setScalar(scale);
           g.position.set(w(lot.x), TILE_TOP, w(lot.y));
           g.updateMatrixWorld(true);
@@ -459,8 +460,8 @@ export class BoardScene {
           this.addPickable(g, i);
           this.buildings.set(i, { key, group: g });
           if (level > prevLevel && !reduceMotion()) {
-            const startY = level < 5 && prevLevel > 0 ? prevLevel / level : 0.05;
-            this.animate(level >= 5 ? 900 : 520, (t) => {
+            const startY = level < MAX_LEVEL && prevLevel > 0 ? prevLevel / level : 0.05;
+            this.animate(level >= MAX_LEVEL ? 900 : 520, (t) => {
               g.scale.y = scale * (startY + (1 - startY) * easeOutBack(t));
             });
           }

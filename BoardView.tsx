@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
-import { BOARD, GO_SALARY, GROUPS } from './board';
+import { BOARD, GO_SALARY, GROUPS, MAX_LEVEL } from './board';
 import { vndShort } from './format';
 import type { GameState } from './types';
 import { ArrowIcon, BarsIcon, BoltIcon, CoinIcon, DropIcon, EnvelopeIcon, LockIcon, ParkIcon, PlaneIcon, TokenDisc } from './icons';
+import { t } from './i18n';
+import { sqName, sqShort } from './names';
 
 type Side = 'bottom' | 'left' | 'top' | 'right' | 'corner';
 
@@ -54,7 +56,7 @@ export function Board({ state, shown, moving, me, highlight, onTile, center }: P
   return (
     <div className="board-wrap">
     <div className="board-frame">
-      <div className="board" role="group" aria-label="Bàn cờ Polime">
+      <div className="board" role="group" aria-label={t('Bàn cờ Polime', 'Polime board')}>
         {BOARD.map((sq, i) => {
           const { row, col, side } = cellOf(i);
           const ps = state.props[i];
@@ -66,7 +68,7 @@ export function Board({ state, shown, moving, me, highlight, onTile, center }: P
           if (sq.kind === 'street') style['--g'] = GROUPS[sq.group].color;
           if (owner) style['--own'] = color(owner) ?? 'transparent';
           return (
-            <button key={i} type="button" className={cls.join(' ')} style={style} onClick={() => onTile(i)} aria-label={sq.name}>
+            <button key={i} type="button" className={cls.join(' ')} style={style} onClick={() => onTile(i)} aria-label={sqName(i)}>
               {owner && <span className="own-edge" />}
               <TileFace i={i} state={state} />
             </button>
@@ -110,7 +112,7 @@ export function Board({ state, shown, moving, me, highlight, onTile, center }: P
 
 function Houses({ n }: { n: number }) {
   if (!n) return null;
-  if (n === 5) return <span className="hotel" title="Khách sạn" />;
+  if (n >= MAX_LEVEL) return <span className="hotel" title={t('Công trình biểu tượng', 'Landmark')} />;
   return (
     <span className="houses">
       {Array.from({ length: n }, (_, k) => (
@@ -131,7 +133,7 @@ function TileFace({ i, state }: { i: number; state: GameState }) {
             <Houses n={ps?.houses ?? 0} />
           </span>
           <span className="t-body">
-            <span className="t-name">{sq.short}</span>
+            <span className="t-name">{sqShort(i)}</span>
             <span className="t-price">{vndShort(sq.price)}</span>
           </span>
         </>
@@ -141,7 +143,7 @@ function TileFace({ i, state }: { i: number; state: GameState }) {
       return (
         <span className="t-body">
           <span className="t-icon">{sq.kind === 'airport' ? <PlaneIcon /> : sq.icon === 'power' ? <BoltIcon /> : <DropIcon />}</span>
-          <span className="t-name">{sq.short}</span>
+          <span className="t-name">{sqShort(i)}</span>
           <span className="t-price">{vndShort(sq.price)}</span>
         </span>
       );
@@ -149,7 +151,7 @@ function TileFace({ i, state }: { i: number; state: GameState }) {
       return (
         <span className="t-body">
           <span className="t-glyph">?</span>
-          <span className="t-name">Cơ hội</span>
+          <span className="t-name">{t('Cơ hội', 'Chance')}</span>
         </span>
       );
     case 'chest':
@@ -158,7 +160,7 @@ function TileFace({ i, state }: { i: number; state: GameState }) {
           <span className="t-icon env">
             <EnvelopeIcon />
           </span>
-          <span className="t-name">Khí vận</span>
+          <span className="t-name">{t('Khí vận', 'Fortune')}</span>
         </span>
       );
     case 'tax':
@@ -167,7 +169,7 @@ function TileFace({ i, state }: { i: number; state: GameState }) {
           <span className="t-icon">
             <CoinIcon />
           </span>
-          <span className="t-name">{sq.short}</span>
+          <span className="t-name">{sqShort(i)}</span>
           <span className="t-price">−{vndShort(sq.amount)}</span>
         </span>
       );
@@ -177,7 +179,7 @@ function TileFace({ i, state }: { i: number; state: GameState }) {
           <span className="c-icon">
             <ArrowIcon />
           </span>
-          <span className="c-name">Khởi hành</span>
+          <span className="c-name">{t('Khởi hành', 'Go')}</span>
           <span className="c-sub">+{vndShort(GO_SALARY)}</span>
         </span>
       );
@@ -187,7 +189,7 @@ function TileFace({ i, state }: { i: number; state: GameState }) {
           <span className="c-icon">
             <BarsIcon />
           </span>
-          <span className="c-name">Nhà giam</span>
+          <span className="c-name">{t('Nhà giam', 'Jail')}</span>
         </span>
       );
     case 'parking':
@@ -196,8 +198,8 @@ function TileFace({ i, state }: { i: number; state: GameState }) {
           <span className="c-icon">
             <ParkIcon />
           </span>
-          <span className="c-name">Bãi đỗ xe</span>
-          <span className="c-sub pot">{state.pot ? `Quỹ ${vndShort(state.pot)}` : 'Quỹ trống'}</span>
+          <span className="c-name">{t('Bãi đỗ xe', 'Free Parking')}</span>
+          <span className="c-sub pot">{state.pot ? t(`Quỹ ${vndShort(state.pot)}`, `Pot ${vndShort(state.pot)}`) : t('Quỹ trống', 'Pot empty')}</span>
         </span>
       );
     case 'gotojail':
@@ -206,7 +208,7 @@ function TileFace({ i, state }: { i: number; state: GameState }) {
           <span className="c-icon">
             <LockIcon />
           </span>
-          <span className="c-name">Vào tù</span>
+          <span className="c-name">{t('Vào tù', 'Go to jail')}</span>
         </span>
       );
   }

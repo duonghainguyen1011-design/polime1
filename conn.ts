@@ -1,6 +1,7 @@
 import { createClient, type RealtimeChannel, type SupabaseClient } from '@supabase/supabase-js';
-import { GameError, apply, newGame } from './engine';
-import type { Action, GameState, TokenId } from './types';
+import { GameError, apply, newGame, normalize } from './engine';
+import type { Action, GameState, Settings, TokenId } from './types';
+import { t } from './i18n';
 
 const URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -36,10 +37,11 @@ const BOTS: { name: string; token: TokenId }[] = [
 ];
 const PRACTICE_KEY = 'polime:practice';
 
-export function createPractice(me: string, name: string, token: TokenId, opponents: number): Conn {
+export function createPractice(me: string, name: string, token: TokenId, opponents: number, settings: Settings = { gameMinutes: 0, moveSeconds: 0 }): Conn {
   let s = newGame(me, name, token);
   const bots = BOTS.filter((b) => b.token !== token).slice(0, opponents);
   bots.forEach((b, i) => (s = apply(s, `bot-${i}`, { t: 'join', name: b.name, token: b.token })));
+  s = apply(s, me, { t: 'settings', ...settings });
   s = apply(s, me, { t: 'start' });
   return localConn(me, s);
 }
@@ -48,7 +50,7 @@ export function resumePractice(me: string): Conn | null {
   try {
     const raw = localStorage.getItem(PRACTICE_KEY);
     if (!raw) return null;
-    const s = JSON.parse(raw) as GameState;
+    const s = normalize(JSON.parse(raw) as GameState);
     if (s.phase !== 'playing' || !s.players.some((p) => p.id === me)) return null;
     return localConn(me, s);
   } catch {
@@ -109,7 +111,7 @@ const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const makeCode = () => Array.from({ length: 5 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
 
 export async function createRoom(me: string, name: string, token: TokenId): Promise<string> {
-  if (!supabase) throw new Error('Chế độ online chưa được bật');
+  if (!supabase) throw new Error(t('Chế độ online chưa được bật', 'Online play is not set up'));
   const state = newGame(me, name, token);
   for (let i = 0; i < 5; i++) {
     const code = makeCode();
@@ -117,11 +119,11 @@ export async function createRoom(me: string, name: string, token: TokenId): Prom
     if (!error) return code;
     if (!/duplicate|unique/i.test(error.message)) throw new Error(error.message);
   }
-  throw new Error('Không tạo được phòng, thử lại nhé');
+  throw new Error(t('Không tạo được phòng, thử lại nhé', "Couldn't create a room, please try again"));
 }
 
 export function openRoom(code: string, me: string): Conn {
-  if (!supabase) throw new Error('Chế độ online chưa được bật');
+  if (!supabase) throw new Error(t('Chế độ online chưa được bật', 'Online play is not set up'));
   const db = supabase;
   const listeners = new Set<Listener>();
   let version = -1;
@@ -145,7 +147,7 @@ export function openRoom(code: string, me: string): Conn {
         if (!conn.state) await refetch();
         const cur = conn.state;
         const v = version;
-        if (!cur) return 'Không tìm thấy phòng';
+        if (!cur) return t('Không tìm thấy phòng', 'Room not found');
         let next: GameState;
         try {
           next = apply(cur, as, a);
@@ -158,7 +160,7 @@ export function openRoom(code: string, me: string): Conn {
           .eq('code', code)
           .eq('version', v)
           .select('version');
-        if (error) return `Lỗi kết nối: ${error.message}`;
+        if (error) return t(`Lỗi kết nối: ${error.message}`, `Connection error: ${error.message}`);
         if (data && data.length) {
           if (version === v) {
             version = v + 1;
@@ -169,7 +171,7 @@ export function openRoom(code: string, me: string): Conn {
         }
         await refetch(); // someone else moved first; replay on the newest state
       }
-      return 'Máy chủ đang bận, hãy thử lại';
+      return t('Máy chủ đang bận, hãy thử lại', 'The server is busy, please try again');
     },
     close() {
       closed = true;
@@ -184,14 +186,14 @@ export function openRoom(code: string, me: string): Conn {
     const { data, error } = await db.from('rooms').select('state,version').eq('code', code).maybeSingle();
     if (closed) return;
     if (error) {
-      conn.error = `Lỗi kết nối: ${error.message}`;
+      conn.error = t(`Lỗi kết nối: ${error.message}`, `Connection error: ${error.message}`);
     } else if (!data) {
-      conn.error = 'Không tìm thấy phòng này. Kiểm tra lại mã phòng.';
+      conn.error = t('Không tìm thấy phòng này. Kiểm tra lại mã phòng.', 'No room with this code. Check the code and try again.');
     } else {
       conn.error = null;
       if (data.version > version) {
         version = data.version;
-        conn.state = data.state as GameState;
+        conn.state = normalize(data.state as GameState);
       }
     }
     emit();
@@ -204,7 +206,7 @@ export function openRoom(code: string, me: string): Conn {
       if (row?.state && typeof row.version === 'number') {
         if (row.version > version) {
           version = row.version;
-          conn.state = row.state;
+          conn.state = normalize(row.state);
           emit();
         }
       } else {

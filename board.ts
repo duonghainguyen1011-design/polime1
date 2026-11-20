@@ -18,7 +18,8 @@ export interface StreetSq {
   group: Group;
   price: number;
   house: number;
-  rent: number[]; // [base, 1 house, 2, 3, 4, hotel]
+  /** Rent by level: [empty land, 1 house, 2 houses, 3 houses, landmark]. Levels 3 and 4 need the whole colour group, so their figures already include the group bonus. */
+  rent: number[];
 }
 export interface AirportSq {
   kind: 'airport';
@@ -53,6 +54,13 @@ export const GO_SALARY = 200;
 export const START_CASH = 1500;
 export const JAIL_FINE = 50;
 export const JAIL_POS = 10;
+/** Levels 1 to 3 are houses, level 4 is the city's landmark. */
+export const MAX_LEVEL = 4;
+/** Levels 1 and 2 can be built on any city you own; higher levels need the whole colour group. */
+export const FREE_LEVELS = 2;
+/** Owning the whole colour group multiplies rent on empty land and on 1 or 2 houses. */
+export const GROUP_BONUS_EMPTY = 2;
+export const GROUP_BONUS_HOUSES = 1.5;
 export const HOUSE_SUPPLY = 88; // enough for every city, since any city can take two houses
 export const HOTEL_SUPPLY = 22;
 
@@ -79,46 +87,72 @@ const st = (
 
 export const BOARD: Square[] = [
   { kind: 'go', name: 'Khởi hành', short: 'Khởi hành' },
-  st('Cao Bằng', 'Cao Bằng', 'Thác Bản Giốc giữa biên cương', 'brown', 60, 50, [2, 10, 30, 90, 160, 250]),
+  st('Cao Bằng', 'Cao Bằng', 'Thác Bản Giốc giữa biên cương', 'brown', 60, 50, [2, 10, 20, 70, 200]),
   { kind: 'chest', name: 'Khí vận', short: 'Khí vận' },
-  st('Hà Giang', 'Hà Giang', 'Cao nguyên đá Đồng Văn', 'brown', 60, 50, [4, 20, 60, 180, 320, 450]),
+  st('Hà Giang', 'Hà Giang', 'Cao nguyên đá Đồng Văn', 'brown', 60, 50, [4, 15, 45, 145, 360]),
   { kind: 'tax', name: 'Thuế thu nhập', short: 'Thuế', amount: 200 },
   { kind: 'airport', name: 'Sân bay Nội Bài', short: 'Nội Bài', tagline: 'Cửa ngõ phía Bắc', price: 200 },
-  st('Điện Biên', 'Điện Biên', 'Cánh đồng Mường Thanh', 'lightblue', 100, 50, [6, 30, 90, 270, 400, 550]),
+  st('Điện Biên', 'Điện Biên', 'Cánh đồng Mường Thanh', 'lightblue', 100, 50, [6, 20, 70, 215, 440]),
   { kind: 'chance', name: 'Cơ hội', short: 'Cơ hội' },
-  st('Mộc Châu', 'Mộc Châu', 'Đồi chè và mùa hoa mận', 'lightblue', 100, 50, [6, 30, 90, 270, 400, 550]),
-  st('Sa Pa', 'Sa Pa', 'Thị trấn trong sương', 'lightblue', 120, 50, [8, 40, 100, 300, 450, 600]),
+  st('Mộc Châu', 'Mộc Châu', 'Đồi chè và mùa hoa mận', 'lightblue', 100, 50, [6, 20, 70, 215, 440]),
+  st('Sa Pa', 'Sa Pa', 'Thị trấn trong sương', 'lightblue', 120, 50, [8, 30, 75, 240, 480]),
   { kind: 'jail', name: 'Nhà giam', short: 'Nhà giam' },
-  st('Pleiku', 'Pleiku', 'Biển Hồ trên miệng núi lửa cổ', 'pink', 140, 100, [10, 50, 150, 450, 625, 750]),
+  st('Pleiku', 'Pleiku', 'Biển Hồ trên miệng núi lửa cổ', 'pink', 140, 100, [10, 40, 110, 360, 600]),
   { kind: 'utility', name: 'Công ty Điện lực', short: 'Điện lực', tagline: 'Thắp sáng mọi miền', price: 150, icon: 'power' },
-  st('Buôn Ma Thuột', 'Ban Mê', 'Thủ phủ cà phê', 'pink', 140, 100, [10, 50, 150, 450, 625, 750]),
-  st('Đà Lạt', 'Đà Lạt', 'Thành phố ngàn hoa', 'pink', 160, 100, [12, 60, 180, 500, 700, 900]),
+  st('Buôn Ma Thuột', 'Ban Mê', 'Thủ phủ cà phê', 'pink', 140, 100, [10, 40, 110, 360, 600]),
+  st('Đà Lạt', 'Đà Lạt', 'Thành phố ngàn hoa', 'pink', 160, 100, [12, 45, 135, 400, 720]),
   { kind: 'airport', name: 'Sân bay Cát Bi', short: 'Cát Bi', tagline: 'Đường bay ra biển Đông Bắc', price: 200 },
-  st('Quy Nhơn', 'Quy Nhơn', 'Biển xanh Kỳ Co, Eo Gió', 'orange', 180, 100, [14, 70, 200, 550, 750, 950]),
+  st('Quy Nhơn', 'Quy Nhơn', 'Biển xanh Kỳ Co, Eo Gió', 'orange', 180, 100, [14, 50, 150, 440, 760]),
   { kind: 'chest', name: 'Khí vận', short: 'Khí vận' },
-  st('Huế', 'Huế', 'Cố đô bên dòng sông Hương', 'orange', 180, 100, [14, 70, 200, 550, 750, 950]),
-  st('Hội An', 'Hội An', 'Phố cổ đèn lồng', 'orange', 200, 100, [16, 80, 220, 600, 800, 1000]),
+  st('Huế', 'Huế', 'Cố đô bên dòng sông Hương', 'orange', 180, 100, [14, 50, 150, 440, 760]),
+  st('Hội An', 'Hội An', 'Phố cổ đèn lồng', 'orange', 200, 100, [16, 60, 165, 480, 800]),
   { kind: 'parking', name: 'Bãi đỗ xe', short: 'Bãi đỗ xe' },
-  st('Phan Thiết', 'Phan Thiết', 'Đồi cát bay Mũi Né', 'red', 220, 150, [18, 90, 250, 700, 875, 1050]),
+  st('Phan Thiết', 'Phan Thiết', 'Đồi cát bay Mũi Né', 'red', 220, 150, [18, 70, 190, 560, 840]),
   { kind: 'chance', name: 'Cơ hội', short: 'Cơ hội' },
-  st('Nha Trang', 'Nha Trang', 'Vịnh biển xanh ngọc', 'red', 220, 150, [18, 90, 250, 700, 875, 1050]),
-  st('Vũng Tàu', 'Vũng Tàu', 'Bãi biển gần Sài Gòn nhất', 'red', 240, 150, [20, 100, 300, 750, 925, 1100]),
+  st('Nha Trang', 'Nha Trang', 'Vịnh biển xanh ngọc', 'red', 220, 150, [18, 70, 190, 560, 840]),
+  st('Vũng Tàu', 'Vũng Tàu', 'Bãi biển gần Sài Gòn nhất', 'red', 240, 150, [20, 75, 225, 600, 880]),
   { kind: 'airport', name: 'Sân bay Cam Ranh', short: 'Cam Ranh', tagline: 'Đón gió biển miền Trung', price: 200 },
-  st('Ninh Bình', 'Ninh Bình', 'Tràng An non nước', 'yellow', 260, 150, [22, 110, 330, 800, 975, 1150]),
-  st('Hạ Long', 'Hạ Long', 'Kỳ quan vịnh đá vôi', 'yellow', 260, 150, [22, 110, 330, 800, 975, 1150]),
+  st('Ninh Bình', 'Ninh Bình', 'Tràng An non nước', 'yellow', 260, 150, [22, 80, 250, 640, 920]),
+  st('Hạ Long', 'Hạ Long', 'Kỳ quan vịnh đá vôi', 'yellow', 260, 150, [22, 80, 250, 640, 920]),
   { kind: 'utility', name: 'Công ty Cấp nước', short: 'Cấp nước', tagline: 'Nước sạch đến từng nhà', price: 150, icon: 'water' },
-  st('Phú Quốc', 'Phú Quốc', 'Đảo ngọc phương Nam', 'yellow', 280, 150, [24, 120, 360, 850, 1025, 1200]),
+  st('Phú Quốc', 'Phú Quốc', 'Đảo ngọc phương Nam', 'yellow', 280, 150, [24, 90, 270, 680, 960]),
   { kind: 'gotojail', name: 'Vào tù', short: 'Vào tù' },
-  st('Cần Thơ', 'Cần Thơ', 'Chợ nổi Cái Răng', 'green', 300, 200, [26, 130, 390, 900, 1100, 1275]),
-  st('Hải Phòng', 'Hải Phòng', 'Thành phố hoa phượng đỏ', 'green', 300, 200, [26, 130, 390, 900, 1100, 1275]),
+  st('Cần Thơ', 'Cần Thơ', 'Chợ nổi Cái Răng', 'green', 300, 200, [26, 100, 290, 720, 1020]),
+  st('Hải Phòng', 'Hải Phòng', 'Thành phố hoa phượng đỏ', 'green', 300, 200, [26, 100, 290, 720, 1020]),
   { kind: 'chest', name: 'Khí vận', short: 'Khí vận' },
-  st('Đà Nẵng', 'Đà Nẵng', 'Cầu Rồng bên sông Hàn', 'green', 320, 200, [28, 150, 450, 1000, 1200, 1400]),
+  st('Đà Nẵng', 'Đà Nẵng', 'Cầu Rồng bên sông Hàn', 'green', 320, 200, [28, 110, 340, 800, 1120]),
   { kind: 'airport', name: 'Sân bay Tân Sơn Nhất', short: 'Tân Sơn Nhất', tagline: 'Cửa ngõ phương Nam', price: 200 },
   { kind: 'chance', name: 'Cơ hội', short: 'Cơ hội' },
-  st('Hà Nội', 'Hà Nội', 'Ngàn năm văn hiến', 'darkblue', 350, 200, [35, 175, 500, 1100, 1300, 1500]),
+  st('Hà Nội', 'Hà Nội', 'Ngàn năm văn hiến', 'darkblue', 350, 200, [35, 130, 375, 880, 1200]),
   { kind: 'tax', name: 'Thuế xa xỉ', short: 'Thuế xa xỉ', amount: 100 },
-  st('TP. Hồ Chí Minh', 'Sài Gòn', 'Hòn ngọc Viễn Đông', 'darkblue', 400, 200, [50, 200, 600, 1400, 1700, 2000]),
+  st('TP. Hồ Chí Minh', 'Sài Gòn', 'Hòn ngọc Viễn Đông', 'darkblue', 400, 200, [50, 150, 450, 1120, 1600]),
 ];
+
+/** Each city's level 4 landmark. */
+export const LANDMARK_NAME: Record<number, string> = {
+  1: 'Thác Bản Giốc',
+  3: 'Cột cờ Lũng Cú',
+  6: 'Tượng đài Chiến thắng',
+  8: 'Đồi chè Mộc Châu',
+  9: 'Đỉnh Fansipan',
+  11: 'Biển Hồ',
+  13: 'Voi Buôn Đôn',
+  14: 'Ga Đà Lạt',
+  16: 'Tháp Đôi',
+  18: 'Ngọ Môn',
+  19: 'Chùa Cầu',
+  21: 'Tháp nước Phan Thiết',
+  23: 'Tháp Trầm Hương',
+  24: 'Hải đăng Vũng Tàu',
+  26: 'Tràng An',
+  27: 'Hòn Trống Mái',
+  29: 'Bãi biển đảo ngọc',
+  31: 'Cầu Cần Thơ',
+  32: 'Nhà hát lớn',
+  34: 'Cầu Rồng',
+  37: 'Hồ Gươm',
+  39: 'Bitexco',
+};
 
 export const isOwnable = (sq: Square): sq is Ownable =>
   sq.kind === 'street' || sq.kind === 'airport' || sq.kind === 'utility';

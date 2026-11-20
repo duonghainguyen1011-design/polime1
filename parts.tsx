@@ -3,6 +3,8 @@ import { BOARD, GROUPS, OWNABLE } from './board';
 import { vnd } from './format';
 import type { GameState, Player } from './types';
 import { TokenDisc } from './icons';
+import { getLang, t } from './i18n';
+import { sqName } from './names';
 
 // ---------- Dice ----------
 
@@ -54,7 +56,7 @@ export function Dice({ dice, rollN }: { dice: [number, number]; rollN: number })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rollN]);
   return (
-    <div className="dice" aria-live="polite" aria-label={`Xúc xắc ${dice[0]} và ${dice[1]}`}>
+    <div className="dice" aria-live="polite" aria-label={t(`Xúc xắc ${dice[0]} và ${dice[1]}`, `Dice ${dice[0]} and ${dice[1]}`)}>
       <Die v={faces[0]} rolling={rolling} />
       <Die v={faces[1]} rolling={rolling} />
     </div>
@@ -83,16 +85,16 @@ export function Players({ state, me, online, local }: { state: GameState; me: st
             <div className="pl-main">
               <div className="pl-name">
                 <span>{p.name}</span>
-                {p.id === me && <span className="chip">Bạn</span>}
-                {!p.bankrupt && isBot && <span className="chip chip-muted">{local ? 'Máy' : 'Máy chơi thay'}</span>}
-                {p.inJail && <span className="chip chip-warn">Ở tù</span>}
-                {p.jailCards.length > 0 && <span className="chip">Thẻ ra tù</span>}
-                {p.bankrupt && <span className="chip chip-muted">Phá sản</span>}
+                {p.id === me && <span className="chip">{t('Bạn', 'You')}</span>}
+                {!p.bankrupt && isBot && <span className="chip chip-muted">{local ? t('Máy', 'Bot') : t('Máy chơi thay', 'Bot playing')}</span>}
+                {p.inJail && <span className="chip chip-warn">{t('Ở tù', 'In jail')}</span>}
+                {p.jailCards.length > 0 && <span className="chip">{t('Thẻ ra tù', 'Jail card')}</span>}
+                {p.bankrupt && <span className="chip chip-muted">{t('Phá sản', 'Bankrupt')}</span>}
               </div>
               {owned.length > 0 && (
-                <div className="pl-props" aria-label={`${owned.length} tài sản`}>
+                <div className="pl-props" aria-label={t(`${owned.length} tài sản`, `${owned.length} properties`)}>
                   {owned.map((i) => (
-                    <span key={i} className={`pp${state.props[i].mortgaged ? ' m' : ''}`} style={{ background: propColor(i) }} title={BOARD[i].name} />
+                    <span key={i} className={`pp${state.props[i].mortgaged ? ' m' : ''}`} style={{ background: propColor(i) }} title={sqName(i)} />
                   ))}
                 </div>
               )}
@@ -148,12 +150,12 @@ export function Log({ state }: { state: GameState }) {
     <div className="log">
       <ol>
         {shown.map((l) => (
-          <li key={l.n}>{l.text}</li>
+          <li key={l.n}>{getLang() === 'en' && l.en ? l.en : l.text}</li>
         ))}
       </ol>
       {items.length > 8 && (
         <button type="button" className="link" onClick={() => setAll(!all)}>
-          {all ? 'Thu gọn' : `Xem thêm ${items.length - 8} dòng`}
+          {all ? t('Thu gọn', 'Show less') : t(`Xem thêm ${items.length - 8} dòng`, `Show ${items.length - 8} more`)}
         </button>
       )}
     </div>
@@ -173,7 +175,7 @@ export function Sheet({ title, onClose, children, wide }: { title: ReactNode; on
       <div className={`sheet${wide ? ' wide' : ''}`} role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
         <div className="sheet-head">
           <h2>{title}</h2>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Đóng">
+          <button type="button" className="icon-btn" onClick={onClose} aria-label={t('Đóng', 'Close')}>
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M6 6l12 12M18 6 6 18" />
             </svg>

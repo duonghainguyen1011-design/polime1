@@ -3,6 +3,8 @@ import { BOARD, GO_SALARY, GROUPS } from './board';
 import { vndShort } from './format';
 import { faceAngle, LOT_OFFSET, tileCenter, tileRect, UNITS } from './layout';
 import type { GameState } from './types';
+import { t } from './i18n';
+import { sqShort } from './names';
 
 const INK = '#3A2B23';
 const DISPLAY = '"Baloo 2", "Be Vietnam Pro", system-ui, sans-serif';
@@ -121,7 +123,7 @@ export function paintBoard(c: Ctx, state: GameState) {
         const g = GROUPS[sq.group].color;
         fill(mix(g, '#ffffff', 0.84));
         plot(g, mix(g, '#ffffff', 0.3));
-        nameAndPrice(sq.short, vndShort(sq.price), mix(g, '#000000', 0.42));
+        nameAndPrice(sqShort(i), vndShort(sq.price), mix(g, '#000000', 0.42));
         break;
       }
       case 'airport':
@@ -130,17 +132,17 @@ export function paintBoard(c: Ctx, state: GameState) {
         // runway stripes
         c.fillStyle = '#ffffff';
         for (let k = -2; k <= 2; k++) c.fillRect(u(k * 0.13 - 0.04), u(-LOT_OFFSET - 0.015), u(0.08), u(0.03));
-        nameAndPrice(sq.short, vndShort(sq.price), '#2F6FB0');
+        nameAndPrice(sqShort(i), vndShort(sq.price), '#2F6FB0');
         break;
       case 'utility':
         if (sq.icon === 'power') {
           fill('#FFF8DC');
           plot('#FFD23F', '#FFEFA6');
-          nameAndPrice(sq.short, vndShort(sq.price), '#9A6B00');
+          nameAndPrice(sqShort(i), vndShort(sq.price), '#9A6B00');
         } else {
           fill('#E6F8FB');
           plot('#5CCFE0', '#C2EEF4');
-          nameAndPrice(sq.short, vndShort(sq.price), '#157A8A');
+          nameAndPrice(sqShort(i), vndShort(sq.price), '#157A8A');
         }
         break;
       case 'chance':
@@ -149,7 +151,7 @@ export function paintBoard(c: Ctx, state: GameState) {
         c.arc(0, u(-LOT_OFFSET), u(0.33), 0, Math.PI * 2);
         c.fillStyle = '#7BB8F7';
         c.fill();
-        title(c, 'Cơ hội', 0, u(0.1), u(0.82), u(0.21), '#ffffff');
+        title(c, t('Cơ hội', 'Chance'), 0, u(0.1), u(0.82), u(0.21), '#ffffff');
         text(c, '?', 0, u(0.62), u(0.22), '#CFE5FF', 800);
         break;
       case 'chest':
@@ -158,7 +160,7 @@ export function paintBoard(c: Ctx, state: GameState) {
         c.arc(0, u(-LOT_OFFSET), u(0.33), 0, Math.PI * 2);
         c.fillStyle = '#F78A97';
         c.fill();
-        title(c, 'Khí vận', 0, u(0.1), u(0.82), u(0.21), '#ffffff');
+        title(c, t('Khí vận', 'Fortune'), 0, u(0.1), u(0.82), u(0.21), '#ffffff');
         star(c, 0, u(0.54), u(0.09), '#FFD23F');
         break;
       case 'tax': {
@@ -172,7 +174,7 @@ export function paintBoard(c: Ctx, state: GameState) {
         c.fillStyle = '#FFD23F';
         c.fill();
         text(c, '₫', 0, u(-LOT_OFFSET + 0.1), u(0.3), '#9A6B00', 800);
-        const bottom = title(c, sq.short, 0, u(0.02), u(0.8), u(0.2));
+        const bottom = title(c, sqShort(i), 0, u(0.02), u(0.8), u(0.2));
         text(c, `−${vndShort(sq.amount)}`, 0, Math.max(bottom + u(0.13), u(0.5)), u(0.16), '#D6336C');
         break;
       }
@@ -198,8 +200,8 @@ export function paintBoard(c: Ctx, state: GameState) {
         c.stroke();
         c.fill();
         c.restore();
-        title(c, 'Khởi hành', u(0.06), u(-0.14), u(1.3), u(0.28));
-        text(c, `Nhận ${vndShort(GO_SALARY)}`, u(0.06), u(0.34), u(0.17), '#8A5A00');
+        title(c, t('Khởi hành', 'Go'), u(0.06), u(-0.14), u(1.3), u(0.28));
+        text(c, t(`Nhận ${vndShort(GO_SALARY)}`, `Collect ${vndShort(GO_SALARY)}`), u(0.06), u(0.34), u(0.17), '#8A5A00');
         break;
       }
       case 'jail': {
@@ -218,8 +220,8 @@ export function paintBoard(c: Ctx, state: GameState) {
           c.stroke();
         }
         c.restore();
-        title(c, 'Nhà giam', u(-0.36), u(-0.02), u(0.9), u(0.2));
-        text(c, 'Thăm tù', u(-0.36), u(0.36), u(0.13), '#5C7089');
+        title(c, t('Nhà giam', 'Jail'), u(-0.36), u(-0.02), u(0.9), u(0.2));
+        text(c, t('Thăm tù', 'Just visiting'), u(-0.36), u(0.36), u(0.13), '#5C7089');
         break;
       }
       case 'parking': {
@@ -228,8 +230,8 @@ export function paintBoard(c: Ctx, state: GameState) {
         c.fillStyle = '#3B82F6';
         c.fill();
         text(c, 'P', 0, u(-0.28), u(0.36), '#ffffff', 800);
-        title(c, 'Bãi đỗ xe', 0, u(-0.12), u(1.3), u(0.22));
-        const pot = state.pot ? `Quỹ ${vndShort(state.pot)}` : 'Quỹ trống';
+        title(c, t('Bãi đỗ xe', 'Free Parking'), 0, u(-0.12), u(1.3), u(0.22));
+        const pot = state.pot ? t(`Quỹ ${vndShort(state.pot)}`, `Pot ${vndShort(state.pot)}`) : t('Quỹ trống', 'Pot empty');
         c.font = `700 ${u(0.15)}px ${DISPLAY}`;
         const pw = c.measureText(pot).width + u(0.2);
         rr(c, -pw / 2, u(0.18), pw, u(0.25), u(0.125));
@@ -253,7 +255,7 @@ export function paintBoard(c: Ctx, state: GameState) {
         c.arc(0, u(-0.27), u(0.05), 0, Math.PI * 2);
         c.fillStyle = '#E5484D';
         c.fill();
-        title(c, 'Vào tù', 0, u(0.0), u(1.2), u(0.26), '#5A1410');
+        title(c, t('Vào tù', 'Go to jail'), 0, u(0.0), u(1.2), u(0.26), '#5A1410');
         break;
       }
     }

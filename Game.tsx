@@ -1,10 +1,13 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BOARD, GROUPS, JAIL_FINE, OWNABLE, ownable } from './board';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
+import { GROUPS, JAIL_FINE, MAX_LEVEL, OWNABLE, ownable } from './board';
 import { vnd, vndShort } from './format';
 import { MAX_TRADES_PER_TURN, actorOf, alive, current, minBid } from './engine';
 import type { Action, GameState } from './types';
 import type { Conn } from './conn';
 import { Board } from './BoardView';
+import { t } from './i18n';
+import { sqName, sqShort } from './names';
+import { deckName } from './cards';
 
 // The 3D board (three.js) loads separately so the home screen and lobby open fast.
 const Board3D = lazy(() => import('./Board3D').then((m) => ({ default: m.Board3D })));
@@ -17,10 +20,10 @@ function webglAvailable() {
     return false;
   }
 }
-import { useBotDriver, useDisplayPositions } from './hooks';
+import { moveDeadline, useBotDriver, useDisplayPositions, useNow } from './hooks';
 import { TokenDisc } from './icons';
 import { CashDelta, Dice, Log, Players, Who, propColor } from './parts';
-import { CardReveal, GameOver, ManageSheet, PropertySheet, TradeSheet, TradeSummary } from './sheets';
+import { FlashCard, GameOver, ManageSheet, PropertySheet, TradeSheet, TradeSummary } from './sheets';
 
 type Overlay = { k: 'prop'; i: number } | { k: 'manage' } | { k: 'trade' } | null;
 
@@ -29,9 +32,11 @@ export function GameView({ conn, state, online, notify, onLeave }: { conn: Conn;
   const { shown, moving } = useDisplayPositions(state);
   useBotDriver(conn, state, online);
   const [overlay, setOverlay] = useState<Overlay>(null);
-  const [cardOpen, setCardOpen] = useState(false);
   const [use3d, setUse3d] = useState(webglAvailable);
-  const lastCard = useRef<number | null>(state.card?.n ?? null);
+  // The flip card for a drawn Cơ hội or Khí vận: shown once the token has arrived, hideable by onlookers.
+  const pendingCard = state.card?.pending ? state.card.n : null;
+  const [cardShown, setCardShown] = useState<number | null>(null);
+  const [cardHidden, setCardHidden] = useState<number | null>(null);
 
   const run = useCallback(
     async (a: Action) => {
@@ -43,16 +48,15 @@ export function GameView({ conn, state, online, notify, onLeave }: { conn: Conn;
   );
   const dispatch = useCallback((a: Action) => void run(a), [run]);
 
-  // Show a drawn card shortly after the token arrives.
   useEffect(() => {
-    const n = state.card?.n ?? null;
-    if (n === lastCard.current) return;
-    lastCard.current = n;
-    if (n === null) return;
-    const t = window.setTimeout(() => setCardOpen(true), 650);
-    return () => window.clearTimeout(t);
-  }, [state.card?.n]);
-  const closeCard = useCallback(() => setCardOpen(false), []);
+    if (pendingCard === null) return;
+    const id = window.setTimeout(() => setCardShown(pendingCard), 1400);
+    return () => window.clearTimeout(id);
+  }, [pendingCard]);
+  const showCard = useCallback(() => {
+    setCardShown(pendingCard);
+    setCardHidden(null);
+  }, [pendingCard]);
 
   const meP = state.players.find((p) => p.id === me);
   const cur = current(state);
@@ -72,7 +76,7 @@ export function GameView({ conn, state, online, notify, onLeave }: { conn: Conn;
       <section className="board-col">
         {use3d ? (
           <div className="stage">
-            <Suspense fallback={<div className="stage-board stage-loading">Đang dựng bàn cờ</div>}>
+            <Suspense fallback={<div className="stage-board stage-loading">{t('Đang dựng bàn cờ', 'Setting up the board')}</div>}>
               <Board3D state={state} shown={shown} highlight={highlight} onTile={(i) => setOverlay({ k: 'prop', i })} onFail={() => setUse3d(false)} />
             </Suspense>
             {meP && !meP.bankrupt && (
@@ -81,7 +85,7 @@ export function GameView({ conn, state, online, notify, onLeave }: { conn: Conn;
               </div>
             )}
             <div className="hud">
-              <Center variant="hud" state={state} me={me} online={online} local={conn.local} dispatch={dispatch} openTrade={() => setOverlay({ k: 'trade' })} />
+              <Center variant="hud" state={state} me={me} online={online} local={conn.local} dispatch={dispatch} openTrade={() => setOverlay({ k: 'trade' })} showCard={showCard} />
             </div>
           </div>
         ) : (
@@ -92,24 +96,24 @@ export function GameView({ conn, state, online, notify, onLeave }: { conn: Conn;
             me={me}
             highlight={highlight}
             onTile={(i) => setOverlay({ k: 'prop', i })}
-            center={<Center variant="board" state={state} me={me} online={online} local={conn.local} dispatch={dispatch} openTrade={() => setOverlay({ k: 'trade' })} />}
+            center={<Center variant="board" state={state} me={me} online={online} local={conn.local} dispatch={dispatch} openTrade={() => setOverlay({ k: 'trade' })} showCard={showCard} />}
           />
         )}
       </section>
 
       <aside className="side">
         <section className="panel">
-          <h2 className="panel-title">Người chơi</h2>
+          <h2 className="panel-title">{t('Người chơi', 'Players')}</h2>
           <Players state={state} me={me} online={online} local={conn.local} />
         </section>
         {meP && !meP.bankrupt && (
           <section className="panel">
-            <h2 className="panel-title">Tài sản của bạn</h2>
+            <h2 className="panel-title">{t('Tài sản của bạn', 'Your properties')}</h2>
             <MyAssets state={state} me={me} onOpen={(i) => setOverlay({ k: 'prop', i })} />
           </section>
         )}
         <section className="panel">
-          <h2 className="panel-title">Diễn biến</h2>
+          <h2 className="panel-title">{t('Diễn biến', 'Game log')}</h2>
           <Log state={state} />
         </section>
       </aside>
@@ -121,7 +125,9 @@ export function GameView({ conn, state, online, notify, onLeave }: { conn: Conn;
         <ManageSheet state={state} me={me} dispatch={dispatch} onClose={() => setOverlay(null)} onOpen={(i) => setOverlay({ k: 'prop', i })} />
       )}
       {overlay?.k === 'trade' && <TradeSheet state={state} me={me} dispatch={run} onClose={() => setOverlay(null)} />}
-      {cardOpen && state.card && <CardReveal state={state} onClose={closeCard} />}
+      {pendingCard !== null && cardShown === pendingCard && cardHidden !== pendingCard && (
+        <FlashCard key={pendingCard} state={state} me={me} onResolve={() => dispatch({ t: 'resolveCard' })} onHide={() => setCardHidden(pendingCard)} />
+      )}
       {state.phase === 'over' && <GameOver state={state} me={me} dispatch={() => void rematch()} onLeave={onLeave} />}
     </div>
   );
@@ -129,7 +135,7 @@ export function GameView({ conn, state, online, notify, onLeave }: { conn: Conn;
 
 // ---------- Center of the board ----------
 
-function Center({ variant, state, me, online, local, dispatch, openTrade }: { variant: 'board' | 'hud'; state: GameState; me: string; online: Set<string>; local: boolean; dispatch: (a: Action) => void; openTrade: () => void }) {
+function Center({ variant, state, me, online, local, dispatch, openTrade, showCard }: { variant: 'board' | 'hud'; state: GameState; me: string; online: Set<string>; local: boolean; dispatch: (a: Action) => void; openTrade: () => void; showCard: () => void }) {
   const cur = current(state);
   const meP = state.players.find((p) => p.id === me);
   const actor = actorOf(state);
@@ -137,15 +143,18 @@ function Center({ variant, state, me, online, local, dispatch, openTrade }: { va
   const curIsBot = local ? cur.id !== me : !online.has(cur.id);
 
   let status: React.ReactNode;
-  if (state.phase === 'over') status = 'Ván chơi kết thúc';
+  if (state.phase === 'over') status = t('Ván chơi kết thúc', 'Game over');
   else if (state.debts.length) {
     const d = state.debts[0];
     const p = state.players.find((x) => x.id === d.debtor)!;
-    status = d.debtor === me ? 'Bạn cần xoay tiền trả nợ' : <><Who p={p} /> đang xoay tiền</>;
-  } else if (state.auction) status = <>Đấu giá {BOARD[state.auction.sq].short}</>;
-  else if (state.trade) status = <>Đang chờ <Who p={state.players.find((p) => p.id === state.trade!.to)!} /></>;
-  else if (cur.id === me) status = cur.inJail ? 'Bạn đang ở tù' : state.step === 'roll' && state.doublesCount > 0 ? 'Đôi! Tung thêm lượt nữa' : 'Lượt của bạn';
-  else status = <>Lượt của <Who p={cur} /></>;
+    status = d.debtor === me ? t('Bạn cần xoay tiền trả nợ', 'You need to raise cash for a debt') : <><Who p={p} /> {t('đang xoay tiền', 'is raising cash')}</>;
+  } else if (state.auction) status = <>{t('Đấu giá', 'Auction:')} {sqShort(state.auction.sq)}</>;
+  else if (state.trade) status = <>{t('Đang chờ', 'Waiting for')} <Who p={state.players.find((p) => p.id === state.trade!.to)!} /></>;
+  else if (state.step === 'card' && state.card?.pending) {
+    const kind = deckName(state.card.deck);
+    status = cur.id === me ? t(`Bạn rút được thẻ ${kind}`, `You drew a ${kind} card`) : <><Who p={cur} /> {t(`đang xem thẻ ${kind}`, `is reading a ${kind} card`)}</>;
+  } else if (cur.id === me) status = cur.inJail ? t('Bạn đang ở tù', 'You are in jail') : state.step === 'roll' && state.doublesCount > 0 ? t('Đôi! Tung thêm lượt nữa', 'Doubles! Roll again') : t('Lượt của bạn', 'Your turn');
+  else status = <>{t('Lượt của', 'Turn:')} <Who p={cur} /></>;
 
   return (
     <div className={variant === 'hud' ? 'hud-inner' : 'center-inner'}>
@@ -154,32 +163,33 @@ function Center({ variant, state, me, online, local, dispatch, openTrade }: { va
           Polime
         </div>
       )}
+      <Clocks state={state} me={me} online={online} local={local} />
       <div className="status">{status}</div>
       {variant === 'board' ? (
         <Dice dice={state.dice} rollN={state.rollN} />
       ) : (
         <span className="sr-only" aria-live="polite">
-          Xúc xắc {state.dice[0]} và {state.dice[1]}
+          {t(`Xúc xắc ${state.dice[0]} và ${state.dice[1]}`, `Dice ${state.dice[0]} and ${state.dice[1]}`)}
         </span>
       )}
       <div className="center-actions">
         {mine && state.step === 'roll' && !cur.inJail && (
           <button type="button" className="btn btn-primary big" onClick={() => dispatch({ t: 'roll' })}>
-            Tung xúc xắc
+            {t('Tung xúc xắc', 'Roll the dice')}
           </button>
         )}
         {mine && state.step === 'roll' && cur.inJail && (
           <>
             <button type="button" className="btn btn-primary" onClick={() => dispatch({ t: 'roll' })}>
-              Tung tìm đôi
+              {t('Tung tìm đôi', 'Roll for doubles')}
             </button>
             {cur.jailCards.length > 0 ? (
               <button type="button" className="btn btn-gold" onClick={() => dispatch({ t: 'useCard' })}>
-                Dùng thẻ ra tù
+                {t('Dùng thẻ ra tù', 'Use jail card')}
               </button>
             ) : (
               <button type="button" className="btn btn-gold" disabled={cur.cash < JAIL_FINE} onClick={() => dispatch({ t: 'payJail' })}>
-                Nộp {vndShort(JAIL_FINE)} ra tù
+                {t(`Nộp ${vndShort(JAIL_FINE)} ra tù`, `Pay ${vndShort(JAIL_FINE)} to leave`)}
               </button>
             )}
           </>
@@ -188,29 +198,84 @@ function Center({ variant, state, me, online, local, dispatch, openTrade }: { va
           <>
             <div className="offer">
               <span className="sw" style={{ background: propColor(cur.pos) }} />
-              {BOARD[cur.pos].short}
+              {sqShort(cur.pos)}
             </div>
             <button type="button" className="btn btn-primary" disabled={cur.cash < ownable(cur.pos).price} onClick={() => dispatch({ t: 'buy' })}>
-              Mua {vndShort(ownable(cur.pos).price)}
+              {t('Mua', 'Buy')} {vndShort(ownable(cur.pos).price)}
             </button>
             <button type="button" className="btn btn-gold" onClick={() => dispatch({ t: 'decline' })}>
-              Đấu giá
+              {t('Đấu giá', 'Auction')}
+            </button>
+            <button type="button" className="btn btn-quiet" onClick={() => dispatch({ t: 'skip' })}>
+              {t('Bỏ qua', 'Skip')}
             </button>
           </>
         )}
+        {state.step === 'card' && state.card?.pending && (mine || !curIsBot) && (
+          <button type="button" className={`btn ${mine ? 'btn-gold big' : 'btn-quiet'}`} onClick={showCard}>
+            {t('Xem thẻ', 'Show card')}
+          </button>
+        )}
         {mine && state.step === 'end' && (
           <button type="button" className="btn btn-primary big" onClick={() => dispatch({ t: 'endTurn' })}>
-            Kết thúc lượt
+            {t('Kết thúc lượt', 'End turn')}
           </button>
         )}
         {!mine && state.phase === 'playing' && !state.auction && !state.debts.length && !state.trade && curIsBot && cur.id !== me && (
-          <span className="waiting">{local ? 'Máy đang đi' : 'Mất kết nối, máy chơi thay'}</span>
+          <span className="waiting">{local ? t('Máy đang đi', 'Bot is playing') : t('Mất kết nối, máy chơi thay', 'Disconnected, a bot is playing')}</span>
         )}
       </div>
-      {mine && state.step !== 'buy' && alive(state).length > 1 && meP && state.tradesThisTurn < MAX_TRADES_PER_TURN && (
+      {mine && state.step !== 'buy' && state.step !== 'card' && alive(state).length > 1 && meP && state.tradesThisTurn < MAX_TRADES_PER_TURN && (
         <button type="button" className="link on-dark" onClick={openTrade}>
-          Đề nghị giao dịch
+          {t('Đề nghị giao dịch', 'Propose a trade')}
         </button>
+      )}
+    </div>
+  );
+}
+
+// ---------- Game clock and move timer ----------
+
+const mmss = (ms: number) => {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+};
+
+function ClockIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+      <circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M8 4.5V8l2.4 1.6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function Clocks({ state, me, online, local }: { state: GameState; me: string; online: Set<string>; local: boolean }) {
+  const playing = state.phase === 'playing';
+  const actor = actorOf(state);
+  const human = !!actor && (local ? actor === me : online.has(actor));
+  const gameOn = playing && !!state.endsAt;
+  const moveOn = playing && !!state.settings?.moveSeconds && human;
+  const now = useNow(gameOn || moveOn);
+  if (!gameOn && !moveOn) return null;
+  const gameLeft = (state.endsAt ?? 0) - now;
+  const deadline = moveDeadline(state);
+  const total = (state.settings?.moveSeconds ?? 0) * 1000;
+  const moveLeft = deadline ? deadline - now : 0;
+  const secs = Math.max(0, Math.ceil(moveLeft / 1000));
+  const ap = state.players.find((p) => p.id === actor);
+  return (
+    <div className="clocks">
+      {gameOn && (
+        <span className={`clock${gameLeft <= 0 ? ' over' : gameLeft < 120_000 ? ' low' : ''}`} role="timer" aria-label={t('Thời gian còn lại của ván', 'Time left in the game')}>
+          <ClockIcon />
+          {gameLeft > 0 ? t(`Ván còn ${mmss(gameLeft)}`, `Game ${mmss(gameLeft)}`) : t('Hết giờ: ván kết thúc sau lượt này', "Time's up: last turn")}
+        </span>
+      )}
+      {moveOn && ap && (
+        <span className={`clock move${secs <= 10 ? ' low' : ''}`} role="timer" aria-label={t('Thời gian cho bước này', 'Time for this move')} style={{ ['--p' as string]: total ? Math.max(0, Math.min(1, moveLeft / total)) : 0 }}>
+          {secs > 0 ? (actor === me ? t(`Bạn còn ${secs} giây`, `${secs}s left`) : t(`${ap.name}: ${secs} giây`, `${ap.name}: ${secs}s`)) : t('Hết giờ, máy đi thay', 'Out of time, bot moves')}
+        </span>
       )}
     </div>
   );
@@ -238,25 +303,25 @@ function Dock({ state, me, dispatch, openManage }: { state: GameState; me: strin
     const to = d.creditor ? state.players.find((p) => p.id === d.creditor) : null;
     const short = d.amount - meP.cash;
     return (
-      <div className="dock" role="region" aria-label="Khoản nợ">
+      <div className="dock" role="region" aria-label={t('Khoản nợ', 'Debt')}>
         <div className="dock-inner">
           <p className="dock-title">
-            Bạn nợ {to ? <Who p={to} /> : d.toPot ? 'quỹ Bãi đỗ xe' : 'ngân hàng'} <b>{vnd(d.amount)}</b>
+            {t('Bạn nợ', 'You owe')} {to ? <Who p={to} /> : d.toPot ? t('quỹ Bãi đỗ xe', 'the Free Parking pot') : t('ngân hàng', 'the bank')} <b>{vnd(d.amount)}</b>
           </p>
-          <p className="dock-sub">{short > 0 ? `Còn thiếu ${vnd(short)}. Bán nhà hoặc thế chấp để đủ tiền.` : 'Bạn đã đủ tiền, hãy trả nợ.'}</p>
+          <p className="dock-sub">{short > 0 ? t(`Còn thiếu ${vnd(short)}. Bán nhà hoặc thế chấp để đủ tiền.`, `You are ${vnd(short)} short. Sell buildings or mortgage to raise it.`) : t('Bạn đã đủ tiền, hãy trả nợ.', 'You have enough now, pay the debt.')}</p>
           <div className="btn-row">
             <button type="button" className="btn btn-primary" disabled={short > 0} onClick={() => dispatch({ t: 'payDebt' })}>
-              Trả nợ
+              {t('Trả nợ', 'Pay debt')}
             </button>
             <button type="button" className="btn btn-quiet" onClick={openManage}>
-              Bán hoặc thế chấp
+              {t('Bán hoặc thế chấp', 'Sell or mortgage')}
             </button>
             <button
               type="button"
               className={`btn ${confirmBust ? 'btn-danger' : 'btn-quiet'}`}
               onClick={() => (confirmBust ? dispatch({ t: 'bankrupt' }) : setConfirmBust(true))}
             >
-              {confirmBust ? 'Chạm lần nữa để phá sản' : 'Tuyên bố phá sản'}
+              {confirmBust ? t('Chạm lần nữa để phá sản', 'Tap again to go bankrupt') : t('Tuyên bố phá sản', 'Declare bankruptcy')}
             </button>
           </div>
         </div>
@@ -274,14 +339,14 @@ function Dock({ state, me, dispatch, openManage }: { state: GameState; me: strin
     const base = minBid(state);
     const options = Array.from(new Set([base, (a.bidder ? a.high : 0) + 50, (a.bidder ? a.high : 0) + 100])).filter((v) => v >= base);
     return (
-      <div className="dock" role="region" aria-label="Đấu giá">
+      <div className="dock" role="region" aria-label={t('Đấu giá', 'Auction')}>
         <div className="dock-inner">
           <div className="auction-head">
             <span className="sw tall" style={{ background: sq.kind === 'street' ? GROUPS[sq.group].color : propColor(a.sq) }} />
             <div>
-              <p className="dock-title">Đấu giá {sq.name}</p>
+              <p className="dock-title">{t('Đấu giá', 'Auction:')} {sqName(a.sq)}</p>
               <p className="dock-sub">
-                Giá niêm yết {vnd(sq.price)}. {bidder ? <>Giá cao nhất {vnd(a.high)} của <Who p={bidder} /></> : 'Chưa có ai trả giá.'}
+                {t('Giá niêm yết', 'List price')} {vnd(sq.price)}. {bidder ? <>{t('Giá cao nhất', 'Top bid')} {vnd(a.high)} {t('của', 'by')} <Who p={bidder} /></> : t('Chưa có ai trả giá.', 'No bids yet.')}
               </p>
             </div>
           </div>
@@ -289,17 +354,17 @@ function Dock({ state, me, dispatch, openManage }: { state: GameState; me: strin
             <div className="btn-row">
               {options.map((v) => (
                 <button key={v} type="button" className="btn btn-primary" disabled={v > meP.cash} onClick={() => dispatch({ t: 'bid', amount: v })}>
-                  Trả {vndShort(v)}
+                  {t('Trả', 'Bid')} {vndShort(v)}
                 </button>
               ))}
               <button type="button" className="btn btn-quiet" onClick={() => dispatch({ t: 'pass' })}>
-                Bỏ qua
+                {t('Bỏ qua', 'Pass')}
               </button>
             </div>
           ) : (
             <p className="dock-sub">
-              {inIt ? 'Chờ ' : 'Bạn đã bỏ qua. Chờ '}
-              <Who p={turn} /> ra giá
+              {inIt ? t('Chờ ', 'Waiting for ') : t('Bạn đã bỏ qua. Chờ ', 'You passed. Waiting for ')}
+              <Who p={turn} /> {t('ra giá', 'to bid')}
             </p>
           )}
         </div>
@@ -307,26 +372,26 @@ function Dock({ state, me, dispatch, openManage }: { state: GameState; me: strin
     );
   }
 
-  const t = state.trade!;
-  const other = state.players.find((p) => p.id === (t.to === me ? t.from : t.to))!;
+  const offer = state.trade!;
+  const other = state.players.find((p) => p.id === (offer.to === me ? offer.from : offer.to))!;
   return (
-    <div className="dock" role="region" aria-label="Giao dịch">
+    <div className="dock" role="region" aria-label={t('Giao dịch', 'Trade')}>
       <div className="dock-inner">
-        <p className="dock-title">{t.to === me ? <><Who p={other} /> muốn giao dịch với bạn</> : <>Đang chờ <Who p={other} /> trả lời</>}</p>
+        <p className="dock-title">{offer.to === me ? <><Who p={other} /> {t('muốn giao dịch với bạn', 'wants to trade with you')}</> : <>{t('Đang chờ', 'Waiting for')} <Who p={other} /> {t('trả lời', 'to answer')}</>}</p>
         <TradeSummary state={state} />
         <div className="btn-row">
-          {t.to === me ? (
+          {offer.to === me ? (
             <>
               <button type="button" className="btn btn-primary" onClick={() => dispatch({ t: 'acceptTrade' })}>
-                Đồng ý
+                {t('Đồng ý', 'Accept')}
               </button>
               <button type="button" className="btn btn-quiet" onClick={() => dispatch({ t: 'rejectTrade' })}>
-                Từ chối
+                {t('Từ chối', 'Decline')}
               </button>
             </>
           ) : (
             <button type="button" className="btn btn-quiet" onClick={() => dispatch({ t: 'cancelTrade' })}>
-              Rút lại đề nghị
+              {t('Rút lại đề nghị', 'Withdraw offer')}
             </button>
           )}
         </div>
@@ -339,7 +404,7 @@ function Dock({ state, me, dispatch, openManage }: { state: GameState; me: strin
 
 function MyAssets({ state, me, onOpen }: { state: GameState; me: string; onOpen: (i: number) => void }) {
   const mine = useMemo(() => OWNABLE.filter((i) => state.props[i]?.owner === me), [state, me]);
-  if (!mine.length) return <p className="hint">Bạn chưa có thành phố nào. Dừng ở ô còn trống để mua, hoặc thắng một phiên đấu giá.</p>;
+  if (!mine.length) return <p className="hint">{t('Bạn chưa có thành phố nào. Dừng ở ô còn trống để mua, hoặc thắng một phiên đấu giá.', 'You own no cities yet. Land on an unowned square to buy it, or win an auction.')}</p>;
   return (
     <div className="assets">
       {mine.map((i) => {
@@ -347,8 +412,8 @@ function MyAssets({ state, me, onOpen }: { state: GameState; me: string; onOpen:
         return (
           <button key={i} type="button" className={`asset${ps.mortgaged ? ' m' : ''}`} onClick={() => onOpen(i)} style={{ ['--g' as string]: propColor(i) }}>
             <span className="asset-band" />
-            <span className="asset-name">{BOARD[i].short}</span>
-            <span className="asset-meta">{ps.mortgaged ? 'Thế chấp' : ps.houses === 5 ? 'Khách sạn' : ps.houses ? `${ps.houses} nhà` : vndShort(ownable(i).price)}</span>
+            <span className="asset-name">{sqShort(i)}</span>
+            <span className="asset-meta">{ps.mortgaged ? t('Thế chấp', 'Mortgaged') : ps.houses >= MAX_LEVEL ? t('Công trình', 'Landmark') : ps.houses ? t(`${ps.houses} nhà`, ps.houses === 1 ? '1 house' : `${ps.houses} houses`) : vndShort(ownable(i).price)}</span>
           </button>
         );
       })}

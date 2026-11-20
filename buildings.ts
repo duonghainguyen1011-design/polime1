@@ -1,9 +1,9 @@
 // Cartoon Vietnamese buildings made from chunky toy shapes.
-// Houses grow one floor per house; the fifth level becomes a hotel, or a landmark in the five big cities.
+// Houses grow one floor per house; the top level becomes the city's own landmark.
 // Three house styles follow the regions: stilt houses in the mountains, yellow Hội An shophouses in the centre, pastel tube houses elsewhere.
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import type { Group as GroupId } from './board';
+import { LANDMARK_NAME, MAX_LEVEL, type Group as GroupId } from './board';
 
 const mats = new Map<string, THREE.MeshStandardMaterial>();
 /** Matte toy plastic in a given colour. */
@@ -870,28 +870,28 @@ function daoNgoc(owner: string) {
 }
 
 export const LANDMARKS: Record<number, { name: string; make: (owner: string) => THREE.Group }> = {
-  1: { name: 'Thác Bản Giốc', make: banGioc },
-  3: { name: 'Cột cờ Lũng Cú', make: lungCu },
-  6: { name: 'Tượng đài Chiến thắng', make: tuongDai },
-  8: { name: 'Đồi chè Mộc Châu', make: doiChe },
-  9: { name: 'Đỉnh Fansipan', make: fansipan },
-  11: { name: 'Biển Hồ', make: bienHo },
-  13: { name: 'Voi Buôn Đôn', make: voi },
-  14: { name: 'Ga Đà Lạt', make: gaDaLat },
-  16: { name: 'Tháp Đôi', make: thapDoi },
-  18: { name: 'Ngọ Môn', make: ngoMon },
-  19: { name: 'Chùa Cầu', make: chuaCau },
-  21: { name: 'Tháp nước Phan Thiết', make: thapNuoc },
-  23: { name: 'Tháp Trầm Hương', make: tramHuong },
-  24: { name: 'Hải đăng Vũng Tàu', make: haiDang },
-  26: { name: 'Tràng An', make: trangAn },
-  27: { name: 'Hòn Trống Mái', make: haLong },
-  29: { name: 'Bãi biển đảo ngọc', make: daoNgoc },
-  31: { name: 'Cầu Cần Thơ', make: cauCanTho },
-  32: { name: 'Nhà hát lớn', make: nhaHat },
-  34: { name: 'Cầu Rồng', make: cauRong },
-  37: { name: 'Hồ Gươm', make: hoGuom },
-  39: { name: 'Bitexco', make: bitexco },
+  1: { name: LANDMARK_NAME[1], make: banGioc },
+  3: { name: LANDMARK_NAME[3], make: lungCu },
+  6: { name: LANDMARK_NAME[6], make: tuongDai },
+  8: { name: LANDMARK_NAME[8], make: doiChe },
+  9: { name: LANDMARK_NAME[9], make: fansipan },
+  11: { name: LANDMARK_NAME[11], make: bienHo },
+  13: { name: LANDMARK_NAME[13], make: voi },
+  14: { name: LANDMARK_NAME[14], make: gaDaLat },
+  16: { name: LANDMARK_NAME[16], make: thapDoi },
+  18: { name: LANDMARK_NAME[18], make: ngoMon },
+  19: { name: LANDMARK_NAME[19], make: chuaCau },
+  21: { name: LANDMARK_NAME[21], make: thapNuoc },
+  23: { name: LANDMARK_NAME[23], make: tramHuong },
+  24: { name: LANDMARK_NAME[24], make: haiDang },
+  26: { name: LANDMARK_NAME[26], make: trangAn },
+  27: { name: LANDMARK_NAME[27], make: haLong },
+  29: { name: LANDMARK_NAME[29], make: daoNgoc },
+  31: { name: LANDMARK_NAME[31], make: cauCanTho },
+  32: { name: LANDMARK_NAME[32], make: nhaHat },
+  34: { name: LANDMARK_NAME[34], make: cauRong },
+  37: { name: LANDMARK_NAME[37], make: hoGuom },
+  39: { name: LANDMARK_NAME[39], make: bitexco },
 };
 
 type Style = 'stilt' | 'hoian' | 'tube';
@@ -906,11 +906,11 @@ const STYLE: Record<GroupId, Style> = {
   darkblue: 'tube',
 };
 
-/** The building for a square at a given level (1 to 4 houses, 5 = hotel or landmark). */
+/** The building for a square at a given level (1 to 3 houses, 4 = the city's landmark). */
 export function buildingFor(sq: number, level: number, group: GroupId, groupColor: string, owner: string) {
   const style = STYLE[group];
   const wall = mixHex(groupColor, '#ffffff', 0.45);
-  if (level >= 5) {
+  if (level >= MAX_LEVEL) {
     if (LANDMARKS[sq]) return LANDMARKS[sq].make(owner);
     if (style === 'stilt') return nhaRong(owner, group === 'pink' ? 1.15 : 0.62);
     if (style === 'hoian') return pagoda(owner);

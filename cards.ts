@@ -1,4 +1,7 @@
+// Cơ hội (Chance) and Khí vận (Fortune) cards, in Vietnamese and English.
+import { t } from './i18n';
 import { vnd } from './format';
+import { sqShort } from './names';
 
 export type CardEffect =
   | { k: 'money'; amount: number } // + receive from bank, - pay into Free Parking pot
@@ -15,75 +18,102 @@ export type CardEffect =
 export interface Card {
   title: string;
   text: string;
+  titleEn: string;
+  textEn: string;
   effect: CardEffect;
 }
 
-const passGo = `Đi qua Khởi hành thì nhận ${vnd(200)}.`;
+const V = (x: number) => vnd(x, 'vi');
+const E = (x: number) => vnd(x, 'en');
+const passGo = `Đi qua Khởi hành thì nhận ${V(200)}.`;
+const passGoEn = `Collect ${E(200)} if you pass Go.`;
+const card = (title: string, text: string, titleEn: string, textEn: string, effect: CardEffect): Card => ({ title, text, titleEn, textEn, effect });
 
 export const CHANCE: Card[] = [
-  { title: 'Lên đường', text: `Về thẳng vạch Khởi hành và nhận ${vnd(200)}.`, effect: { k: 'advance', to: 0 } },
-  { title: 'Tắm biển cuối tuần', text: `Ra Vũng Tàu hóng gió. ${passGo}`, effect: { k: 'advance', to: 24 } },
-  { title: 'Lên phố núi', text: `Đi Pleiku ngắm Biển Hồ. ${passGo}`, effect: { k: 'advance', to: 11 } },
-  {
-    title: 'Sự cố điện nước',
-    text: 'Đến công ty Điện lực hoặc Cấp nước gần nhất. Nếu đã có chủ, tung xúc xắc và trả gấp 10 lần số điểm.',
-    effect: { k: 'nearestUtility' },
-  },
-  {
-    title: 'Chuyến bay gấp',
-    text: 'Ra sân bay gần nhất. Nếu đã có chủ, trả gấp đôi tiền thuê.',
-    effect: { k: 'nearestAirport' },
-  },
-  {
-    title: 'Hoãn chuyến, đổi vé',
-    text: 'Ra sân bay gần nhất. Nếu đã có chủ, trả gấp đôi tiền thuê.',
-    effect: { k: 'nearestAirport' },
-  },
-  { title: 'Cổ tức về tài khoản', text: `Công ty chia cổ tức. Nhận ${vnd(50)}.`, effect: { k: 'money', amount: 50 } },
-  { title: 'Thẻ ra tù', text: 'Giữ thẻ này để ra tù miễn phí khi cần. Có thể dùng sau.', effect: { k: 'jailFree' } },
-  { title: 'Quên ví ở quán', text: 'Quay lại 3 ô để lấy ví.', effect: { k: 'back', n: 3 } },
-  { title: 'Vượt đèn đỏ', text: 'Bị giữ lại. Vào tù ngay, không đi qua Khởi hành.', effect: { k: 'jail' } },
-  {
-    title: 'Bảo dưỡng mùa mưa',
-    text: `Trả ${vnd(25)} cho mỗi nhà và ${vnd(100)} cho mỗi khách sạn bạn sở hữu.`,
-    effect: { k: 'repairs', house: 25, hotel: 100 },
-  },
-  { title: 'Chạy quá tốc độ', text: `Nộp phạt ${vnd(15)}.`, effect: { k: 'money', amount: -15 } },
-  { title: 'Chuyến bay sớm', text: `Ra sân bay Nội Bài. ${passGo}`, effect: { k: 'advance', to: 5 } },
-  { title: 'Hẹn ở Sài Gòn', text: 'Đi thẳng đến TP. Hồ Chí Minh.', effect: { k: 'advance', to: 39 } },
-  {
-    title: 'Làm trưởng nhóm',
-    text: `Bạn được bầu làm trưởng nhóm. Đãi mỗi người chơi ${vnd(50)}.`,
-    effect: { k: 'payEach', amount: 50 },
-  },
-  { title: 'Khoản vay đáo hạn', text: `Khoản đầu tư sinh lời. Nhận ${vnd(150)}.`, effect: { k: 'money', amount: 150 } },
+  card('Lên đường', `Về thẳng vạch Khởi hành và nhận ${V(200)}.`, 'Hit the road', `Go straight to Go and collect ${E(200)}.`, { k: 'advance', to: 0 }),
+  card('Tắm biển cuối tuần', `Ra Vũng Tàu hóng gió. ${passGo}`, 'Weekend at the beach', `Head to Vũng Tàu for the sea breeze. ${passGoEn}`, { k: 'advance', to: 24 }),
+  card('Lên phố núi', `Đi Pleiku ngắm Biển Hồ. ${passGo}`, 'Up to the highlands', `Go to Pleiku to see Biển Hồ lake. ${passGoEn}`, { k: 'advance', to: 11 }),
+  card(
+    'Sự cố điện nước',
+    'Đến công ty Điện lực hoặc Cấp nước gần nhất. Nếu đã có chủ, tung xúc xắc và trả gấp 10 lần số điểm.',
+    'Power cut',
+    'Go to the nearest power or water company. If it has an owner, roll the dice and pay 10 times the total.',
+    { k: 'nearestUtility' },
+  ),
+  card('Chuyến bay gấp', 'Ra sân bay gần nhất. Nếu đã có chủ, trả gấp đôi tiền thuê.', 'Urgent flight', 'Go to the nearest airport. If it has an owner, pay double rent.', { k: 'nearestAirport' }),
+  card('Hoãn chuyến, đổi vé', 'Ra sân bay gần nhất. Nếu đã có chủ, trả gấp đôi tiền thuê.', 'Flight changed', 'Go to the nearest airport. If it has an owner, pay double rent.', { k: 'nearestAirport' }),
+  card('Cổ tức về tài khoản', `Công ty chia cổ tức. Nhận ${V(50)}.`, 'Dividend paid', `Your shares pay a dividend. Collect ${E(50)}.`, { k: 'money', amount: 50 }),
+  card('Thẻ ra tù', 'Giữ thẻ này để ra tù miễn phí khi cần. Có thể dùng sau.', 'Get out of jail', 'Keep this card to leave jail for free when you need to.', { k: 'jailFree' }),
+  card('Quên ví ở quán', 'Quay lại 3 ô để lấy ví.', 'Left your wallet', 'Go back 3 squares to fetch it.', { k: 'back', n: 3 }),
+  card('Vượt đèn đỏ', 'Bị giữ lại. Vào tù ngay, không đi qua Khởi hành.', 'Ran a red light', 'Go straight to jail. Do not pass Go.', { k: 'jail' }),
+  card(
+    'Bảo dưỡng mùa mưa',
+    `Trả ${V(25)} cho mỗi nhà và ${V(100)} cho mỗi công trình biểu tượng bạn sở hữu.`,
+    'Rainy season repairs',
+    `Pay ${E(25)} for each house and ${E(100)} for each landmark you own.`,
+    { k: 'repairs', house: 25, hotel: 100 },
+  ),
+  card('Chạy quá tốc độ', `Nộp phạt ${V(15)}.`, 'Speeding ticket', `Pay a ${E(15)} fine.`, { k: 'money', amount: -15 }),
+  card('Chuyến bay sớm', `Ra sân bay Nội Bài. ${passGo}`, 'Early flight', `Go to Nội Bài Airport. ${passGoEn}`, { k: 'advance', to: 5 }),
+  card('Hẹn ở Sài Gòn', 'Đi thẳng đến TP. Hồ Chí Minh.', 'Meeting in Saigon', 'Go straight to Hồ Chí Minh City.', { k: 'advance', to: 39 }),
+  card('Làm trưởng nhóm', `Bạn được bầu làm trưởng nhóm. Đãi mỗi người chơi ${V(50)}.`, 'Team leader', `You were made team leader. Treat every player to ${E(50)}.`, { k: 'payEach', amount: 50 }),
+  card('Khoản vay đáo hạn', `Khoản đầu tư sinh lời. Nhận ${V(150)}.`, 'Investment pays off', `Your investment matures. Collect ${E(150)}.`, { k: 'money', amount: 150 }),
 ];
 
 export const CHEST: Card[] = [
-  { title: 'Lên đường', text: `Về thẳng vạch Khởi hành và nhận ${vnd(200)}.`, effect: { k: 'advance', to: 0 } },
-  { title: 'Ngân hàng nhầm lẫn', text: `Lỗi có lợi cho bạn. Nhận ${vnd(200)}.`, effect: { k: 'money', amount: 200 } },
-  { title: 'Khám sức khỏe', text: `Trả ${vnd(50)} tiền khám.`, effect: { k: 'money', amount: -50 } },
-  { title: 'Bán cổ phiếu', text: `Chốt lời đúng lúc. Nhận ${vnd(50)}.`, effect: { k: 'money', amount: 50 } },
-  { title: 'Thẻ ra tù', text: 'Giữ thẻ này để ra tù miễn phí khi cần. Có thể dùng sau.', effect: { k: 'jailFree' } },
-  { title: 'Bị triệu tập', text: 'Vào tù ngay, không đi qua Khởi hành.', effect: { k: 'jail' } },
-  { title: 'Tết đến rồi', text: `Nhận lì xì ${vnd(100)}.`, effect: { k: 'money', amount: 100 } },
-  { title: 'Hoàn thuế', text: `Nhận lại ${vnd(20)} tiền thuế thu nhập.`, effect: { k: 'money', amount: 20 } },
-  {
-    title: 'Sinh nhật vui vẻ',
-    text: `Mỗi người chơi mừng sinh nhật bạn ${vnd(10)}.`,
-    effect: { k: 'collectEach', amount: 10 },
-  },
-  { title: 'Bảo hiểm đáo hạn', text: `Nhận ${vnd(100)} tiền bảo hiểm.`, effect: { k: 'money', amount: 100 } },
-  { title: 'Viện phí', text: `Trả ${vnd(100)} tiền viện phí.`, effect: { k: 'money', amount: -100 } },
-  { title: 'Học phí', text: `Đóng ${vnd(50)} học phí.`, effect: { k: 'money', amount: -50 } },
-  { title: 'Phí tư vấn', text: `Nhận ${vnd(25)} phí tư vấn.`, effect: { k: 'money', amount: 25 } },
-  {
-    title: 'Sửa đường trước nhà',
-    text: `Trả ${vnd(40)} cho mỗi nhà và ${vnd(115)} cho mỗi khách sạn bạn sở hữu.`,
-    effect: { k: 'repairs', house: 40, hotel: 115 },
-  },
-  { title: 'Thi nấu phở', text: `Đoạt giải Nhì cuộc thi nấu phở. Nhận ${vnd(10)}.`, effect: { k: 'money', amount: 10 } },
-  { title: 'Nhận thừa kế', text: `Nhận ${vnd(100)} tiền thừa kế.`, effect: { k: 'money', amount: 100 } },
+  card('Lên đường', `Về thẳng vạch Khởi hành và nhận ${V(200)}.`, 'Hit the road', `Go straight to Go and collect ${E(200)}.`, { k: 'advance', to: 0 }),
+  card('Ngân hàng nhầm lẫn', `Lỗi có lợi cho bạn. Nhận ${V(200)}.`, 'Bank error', `A bank error in your favour. Collect ${E(200)}.`, { k: 'money', amount: 200 }),
+  card('Khám sức khỏe', `Trả ${V(50)} tiền khám.`, 'Check-up', `Pay ${E(50)} for a doctor's visit.`, { k: 'money', amount: -50 }),
+  card('Bán cổ phiếu', `Chốt lời đúng lúc. Nhận ${V(50)}.`, 'Sold your shares', `Good timing. Collect ${E(50)}.`, { k: 'money', amount: 50 }),
+  card('Thẻ ra tù', 'Giữ thẻ này để ra tù miễn phí khi cần. Có thể dùng sau.', 'Get out of jail', 'Keep this card to leave jail for free when you need to.', { k: 'jailFree' }),
+  card('Bị triệu tập', 'Vào tù ngay, không đi qua Khởi hành.', 'Summoned', 'Go straight to jail. Do not pass Go.', { k: 'jail' }),
+  card('Tết đến rồi', `Nhận lì xì ${V(100)}.`, 'Happy Tết', `Collect ${E(100)} in lucky money.`, { k: 'money', amount: 100 }),
+  card('Hoàn thuế', `Nhận lại ${V(20)} tiền thuế thu nhập.`, 'Tax refund', `Collect a ${E(20)} income tax refund.`, { k: 'money', amount: 20 }),
+  card('Sinh nhật vui vẻ', `Mỗi người chơi mừng sinh nhật bạn ${V(10)}.`, 'Happy birthday', `Every player gives you ${E(10)} for your birthday.`, { k: 'collectEach', amount: 10 }),
+  card('Bảo hiểm đáo hạn', `Nhận ${V(100)} tiền bảo hiểm.`, 'Insurance pays out', `Collect ${E(100)} from your insurance.`, { k: 'money', amount: 100 }),
+  card('Viện phí', `Trả ${V(100)} tiền viện phí.`, 'Hospital bill', `Pay ${E(100)} in hospital fees.`, { k: 'money', amount: -100 }),
+  card('Học phí', `Đóng ${V(50)} học phí.`, 'School fees', `Pay ${E(50)} in school fees.`, { k: 'money', amount: -50 }),
+  card('Phí tư vấn', `Nhận ${V(25)} phí tư vấn.`, 'Consulting fee', `Collect a ${E(25)} consulting fee.`, { k: 'money', amount: 25 }),
+  card(
+    'Sửa đường trước nhà',
+    `Trả ${V(40)} cho mỗi nhà và ${V(115)} cho mỗi công trình biểu tượng bạn sở hữu.`,
+    'Street repairs',
+    `Pay ${E(40)} for each house and ${E(115)} for each landmark you own.`,
+    { k: 'repairs', house: 40, hotel: 115 },
+  ),
+  card('Thi nấu phở', `Đoạt giải Nhì cuộc thi nấu phở. Nhận ${V(10)}.`, 'Phở contest', `You took second place in a phở contest. Collect ${E(10)}.`, { k: 'money', amount: 10 }),
+  card('Nhận thừa kế', `Nhận ${V(100)} tiền thừa kế.`, 'Inheritance', `Collect a ${E(100)} inheritance.`, { k: 'money', amount: 100 }),
 ];
 
 export const DECKS = { chance: CHANCE, chest: CHEST } as const;
+
+export const cardTitle = (c: Card) => t(c.title, c.titleEn);
+export const cardText = (c: Card) => t(c.text, c.textEn);
+export const deckName = (deck: 'chance' | 'chest') => (deck === 'chance' ? t('Cơ hội', 'Chance') : t('Khí vận', 'Fortune'));
+
+/** What the button on a drawn card says: the thing that will happen when the player taps it. */
+export function cardAction(card: Card): string {
+  const e = card.effect;
+  switch (e.k) {
+    case 'money':
+      return e.amount > 0 ? t('Nhận tiền', 'Collect') : t('Trả tiền', 'Pay');
+    case 'advance':
+      return e.to === 0 ? t('Về Khởi hành', 'Go to Go') : t(`Đi tới ${sqShort(e.to)}`, `Go to ${sqShort(e.to)}`);
+    case 'nearestAirport':
+      return t('Ra sân bay', 'Go to the airport');
+    case 'nearestUtility':
+      return t('Đi tiếp', 'Go');
+    case 'back':
+      return t(`Lùi ${e.n} ô`, `Go back ${e.n}`);
+    case 'jail':
+      return t('Vào tù', 'Go to jail');
+    case 'jailFree':
+      return t('Giữ thẻ', 'Keep the card');
+    case 'repairs':
+      return t('Trả tiền sửa chữa', 'Pay for repairs');
+    case 'payEach':
+      return t('Đãi mọi người', 'Treat everyone');
+    case 'collectEach':
+      return t('Nhận tiền mừng', 'Collect gifts');
+  }
+}
